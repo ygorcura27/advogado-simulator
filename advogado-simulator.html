@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advocatus — Simulador Jurídico</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Courier+Prime&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --verde:#1a2e1a;--vm:#2d4a2d;--vc:#3d6b3d;
+  --d:#c9a84c;--dl:#e8cc7a;
+  --cr:#f5f0e8;--sl:#718096;
+  --vm2:#8b2635;--az:#1e4080;
+  --gb:1px solid #c9a84c44;
+}
+body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-height:100vh;overflow-x:hidden}
+
+/* INTRO */
+#intro{position:fixed;inset:0;background:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:1.4rem;padding:2rem;overflow-y:auto}
+.it{font-family:'Playfair Display',serif;font-size:clamp(2rem,5vw,4rem);color:var(--d);letter-spacing:.05em;text-align:center;line-height:1}
+.is{font-size:.82rem;color:var(--sl);text-align:center;letter-spacing:.14em;text-transform:uppercase}
+.isep{width:100px;height:1px;background:var(--d);opacity:.5}
+.ic{background:rgba(255,255,255,.04);border:var(--gb);border-radius:2px;padding:1.7rem;max-width:660px;width:100%}
+.ic h3{font-family:'Playfair Display',serif;color:var(--d);margin-bottom:.75rem;font-size:1rem}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem}
+.fg{display:flex;flex-direction:column;gap:.32rem}
+.fg label{font-size:.7rem;color:var(--sl);text-transform:uppercase;letter-spacing:.1em}
+.fg input,.fg select{background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.3);color:var(--cr);padding:.52rem .75rem;border-radius:2px;font-family:'Inter',sans-serif;font-size:.86rem;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus{border-color:var(--d)}
+.fg select option{background:var(--vm)}
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-top:.38rem}
+.cb{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.25);color:var(--cr);padding:.6rem .38rem;border-radius:2px;cursor:pointer;font-size:.73rem;text-align:center;transition:all .2s;line-height:1.3}
+.cb:hover{border-color:var(--d);background:rgba(201,168,76,.1)}
+.cb.sel{border-color:var(--d);background:rgba(201,168,76,.15);color:var(--d)}
+.cb .ci{font-size:1.25rem;display:block;margin-bottom:.22rem}
+.cb .cs{font-size:.6rem;opacity:.6}
+.bp{background:var(--d);color:var(--verde);border:none;padding:.72rem 2rem;font-family:'Inter',sans-serif;font-weight:600;font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all .2s;width:100%;margin-top:.75rem}
+.bp:hover{background:var(--dl)}
+.bp:disabled{opacity:.4;cursor:not-allowed}
+
+/* TOPBAR */
+#gs{display:none;min-height:100vh;flex-direction:column}
+#gs.on{display:flex}
+.tb{background:var(--vm);border-bottom:1px solid rgba(201,168,76,.25);padding:.52rem 1.2rem;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.tbl{font-family:'Playfair Display',serif;color:var(--d);font-size:.98rem;letter-spacing:.05em;white-space:nowrap}
+.tbn{font-size:.76rem;color:var(--cr);font-weight:500;white-space:nowrap}
+.tbg{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--d);font-size:.66rem;padding:.16rem .52rem;border-radius:10px;letter-spacing:.04em;white-space:nowrap}
+.tbr{margin-left:auto;display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
+.sp{display:flex;align-items:center;gap:.32rem;font-size:.76rem;color:var(--cr)}
+.sp .v{font-weight:600;color:var(--d)}
+.td{font-family:'Courier Prime',monospace;font-size:.78rem;color:var(--sl);border-left:1px solid rgba(201,168,76,.2);padding-left:.75rem;white-space:nowrap}
+#ba{background:var(--vc);border:1px solid var(--d);color:var(--d);padding:.3rem .75rem;border-radius:2px;font-size:.71rem;font-weight:600;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap}
+#ba:hover{background:rgba(201,168,76,.2)}
+#ba:disabled{opacity:.5;cursor:not-allowed}
+
+/* LAYOUT */
+.gb{display:grid;grid-template-columns:210px 1fr 255px;flex:1}
+
+/* SIDENAV */
+.sn{background:#111f11;border-right:1px solid rgba(201,168,76,.15);padding:.75rem 0;display:flex;flex-direction:column;gap:.12rem;min-height:calc(100vh - 43px)}
+.ns{padding:.65rem 1rem .22rem;font-size:.6rem;color:var(--sl);text-transform:uppercase;letter-spacing:.12em}
+.ni{display:flex;align-items:center;gap:.55rem;padding:.52rem 1.1rem;cursor:pointer;transition:all .15s;color:var(--sl);font-size:.79rem;border-left:3px solid transparent}
+.ni:hover{color:var(--cr);background:rgba(255,255,255,.04)}
+.ni.on{color:var(--d);border-left-color:var(--d);background:rgba(201,168,76,.08)}
+.ni .bx{margin-left:auto;background:var(--vm2);color:#fff;font-size:.6rem;padding:.07rem .36rem;border-radius:8px;font-weight:600}
+
+/* CENTER */
+.cp{padding:1.25rem;overflow-y:auto;max-height:calc(100vh - 43px)}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:.65rem;border-bottom:1px solid rgba(201,168,76,.2)}
+.pt{font-family:'Playfair Display',serif;font-size:1.32rem;color:var(--cr)}
+.ps{font-size:.73rem;color:var(--sl);margin-top:.16rem}
+.cd{background:rgba(255,255,255,.04);border:var(--gb);border-radius:2px;padding:1.05rem;margin-bottom:.85rem}
+.ct{font-family:'Playfair Display',serif;font-size:.93rem;color:var(--d);margin-bottom:.65rem;display:flex;align-items:center;gap:.45rem}
+
+/* PROC CARD */
+.pc{background:rgba(255,255,255,.03);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.88rem;margin-bottom:.58rem;cursor:pointer;transition:all .15s}
+.pc:hover{border-color:var(--d);background:rgba(201,168,76,.06)}
+.pn{font-family:'Courier Prime',monospace;font-size:.66rem;color:var(--sl)}
+.pp{font-weight:600;font-size:.84rem;color:var(--cr);margin:.26rem 0}
+.pto{font-size:.71rem;color:var(--dl)}
+.pm{display:flex;gap:.65rem;margin-top:.42rem;flex-wrap:wrap}
+.pt2{font-size:.62rem;padding:.1rem .42rem;border-radius:2px;background:rgba(255,255,255,.08);color:var(--sl);text-transform:uppercase;letter-spacing:.04em}
+.pt2.urgente{background:rgba(139,38,53,.3);color:#ff8096}
+.pt2.ganho{background:rgba(45,200,100,.2);color:#6effa6}
+.pt2.perdido{background:rgba(139,38,53,.2);color:#ff8096}
+.pt2.andamento{background:rgba(201,168,76,.2);color:var(--d)}
+@keyframes pb{0%,100%{border-color:rgba(139,38,53,.4)}50%{border-color:rgba(139,38,53,.9)}}
+.up{animation:pb 2s ease-in-out infinite}
+
+/* AUDIÊNCIA LOG */
+.al{background:#0d1a0d;border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.88rem;font-family:'Courier Prime',monospace;font-size:.77rem;line-height:1.9;color:#a8c5a8;max-height:270px;overflow-y:auto;margin:.65rem 0}
+.al .ls{color:var(--d)}
+.al .lj{color:#90c0ff}
+.al .la{color:#c8e6c9}
+.al .lo{color:#ffcdd2}
+.al .lr{color:#ffe082;font-weight:bold}
+
+/* PEÇAS */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:.48rem;margin-top:.75rem}
+.pb2{background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.3);color:var(--cr);padding:.62rem;border-radius:2px;cursor:pointer;font-size:.77rem;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:.18rem}
+.pb2:hover:not(:disabled){border-color:var(--d);background:rgba(201,168,76,.1)}
+.pb2:disabled{opacity:.4;cursor:not-allowed}
+.pb2 .pbt{font-weight:600;font-size:.8rem;color:var(--cr)}
+.pb2 .pbd{font-size:.68rem;color:var(--sl);line-height:1.4}
+.rb{margin-top:.75rem;padding:.75rem;border-radius:2px;font-size:.8rem;line-height:1.6}
+.rb.ok{background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.4);color:#a5d6a7}
+.rb.ko{background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.4);color:#ef9a9a}
+.rb.pc2{background:rgba(255,167,38,.1);border:1px solid rgba(255,167,38,.4);color:#ffcc80}
+
+/* SKILLS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:.78rem}
+.sl2{font-size:.74rem;color:var(--cr);margin-bottom:.26rem;display:flex;justify-content:space-between}
+.sl2 span{color:var(--d);font-weight:600}
+.sb{height:6px;background:rgba(255,255,255,.1);border-radius:1px;overflow:hidden}
+.sf{height:100%;border-radius:1px;transition:width .5s ease}
+.sf.az{background:#42a5f5}.sf.vd{background:#4caf50}.sf.rx{background:#ab47bc}.sf.dr{background:var(--d)}.sf.lr2{background:#ff7043}
+
+/* PROGRESSÃO */
+.pst{display:flex;align-items:center;gap:.9rem;margin-bottom:.85rem;padding:.65rem;border-radius:2px}
+.pst.at{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3)}
+.pst.ps2{opacity:.6}.pst.ft{opacity:.32}
+.pcir{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0}
+.pca{background:var(--d);color:var(--verde)}.pcp{background:var(--vc);color:var(--cr)}.pcf{background:rgba(255,255,255,.08);color:var(--sl)}
+
+/* EXAM */
+.exo{position:fixed;inset:0;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem}
+.exo.h{display:none}
+.exb{background:#0d1a0d;border:2px solid var(--d);border-radius:2px;padding:1.8rem;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.exh{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--d);margin-bottom:.35rem}
+.exs{font-size:.76rem;color:var(--sl);margin-bottom:1.1rem}
+.exq{font-size:.88rem;color:var(--cr);line-height:1.7;margin-bottom:.9rem;padding:.75rem;background:rgba(255,255,255,.04);border-left:3px solid var(--d)}
+.exop{display:flex;flex-direction:column;gap:.45rem;margin-bottom:.9rem}
+.exo2{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.25);color:var(--cr);padding:.62rem .85rem;border-radius:2px;cursor:pointer;font-size:.8rem;text-align:left;transition:all .15s}
+.exo2:hover:not(:disabled){border-color:var(--d);background:rgba(201,168,76,.1)}
+.exo2.ok{border-color:#4caf50!important;background:rgba(76,175,80,.15)!important;color:#a5d6a7}
+.exo2.ko{border-color:#e53935!important;background:rgba(229,57,53,.12)!important;color:#ef9a9a}
+.exo2:disabled{cursor:default}
+.exsc{font-family:'Playfair Display',serif;font-size:2rem;color:var(--d);text-align:center;margin:1rem 0}
+
+/* PAT */
+.ptg{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.75rem}
+.pti{background:rgba(255,255,255,.04);border:var(--gb);padding:.72rem;border-radius:2px;text-align:center}
+.pti .pii{font-size:1.65rem}.pti .pil{font-size:.66rem;color:var(--sl);margin:.22rem 0 .08rem;text-transform:uppercase;letter-spacing:.04em}.pti .piv{font-weight:700;font-size:.88rem;color:var(--d)}
+
+/* LOJA */
+.shg{display:grid;grid-template-columns:1fr 1fr;gap:.62rem}
+.shi{background:rgba(255,255,255,.04);border:var(--gb);padding:.82rem;border-radius:2px;text-align:center}
+.shi .si{font-size:1.75rem}.shi .sn{font-size:.78rem;font-weight:600;color:var(--cr);margin:.22rem 0}.shi .sd{font-size:.66rem;color:var(--sl);margin-bottom:.32rem}.shi .sp{font-size:.76rem;color:#69e08a;font-weight:600;margin-bottom:.38rem}
+.bby{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--d);padding:.28rem .72rem;border-radius:2px;font-size:.71rem;cursor:pointer;font-weight:600;transition:all .15s}
+.bby:hover:not(:disabled){background:rgba(201,168,76,.3)}.bby:disabled{opacity:.4;cursor:not-allowed}
+.owl{color:#69e08a;font-size:.71rem;font-weight:600}
+
+/* ESTAGIÁRIO */
+.ec{display:flex;align-items:center;gap:.85rem;background:rgba(255,255,255,.04);border:var(--gb);padding:.75rem;border-radius:2px;margin-bottom:.55rem}
+.ea{font-size:1.75rem;flex-shrink:0}.ei{flex:1}.en{font-weight:600;font-size:.86rem}.ear{font-size:.71rem;color:var(--sl)}.ep{font-size:.71rem;color:var(--d);margin-top:.16rem}
+
+/* RIGHT */
+.rp{background:#111f11;border-left:1px solid rgba(201,168,76,.15);padding:1.05rem;overflow-y:auto;max-height:calc(100vh - 43px)}
+.rs{margin-bottom:1.25rem}
+.rt{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--sl);margin-bottom:.65rem;padding-bottom:.32rem;border-bottom:1px solid rgba(201,168,76,.15)}
+.sr{display:flex;justify-content:space-between;align-items:center;margin-bottom:.42rem}
+.sr .sl3{font-size:.74rem;color:var(--sl)}.sr .sv{font-size:.8rem;font-weight:600;color:var(--cr)}.sr .sv.mn{color:#69e08a}
+.xpw{margin-bottom:.28rem}
+.xpl{display:flex;justify-content:space-between;font-size:.68rem;color:var(--sl);margin-bottom:.26rem}
+.xpb{height:7px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.xpf{height:100%;background:linear-gradient(90deg,var(--vc),var(--d));transition:width .5s ease}
+.nb{display:inline-block;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--d);font-size:.68rem;padding:.13rem .48rem;border-radius:2px;margin-bottom:.48rem;font-weight:600}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem}
+.mo.h{display:none}
+.mb{background:var(--vm);border:1px solid rgba(201,168,76,.4);border-radius:2px;padding:1.35rem;max-width:610px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.mtt{font-family:'Playfair Display',serif;font-size:1.12rem;color:var(--d);margin-bottom:.85rem;display:flex;justify-content:space-between;align-items:flex-start}
+.mc{cursor:pointer;opacity:.6;font-size:1.1rem;flex-shrink:0;margin-left:.45rem}.mc:hover{opacity:1}
+
+/* CONCURSO */
+.cc{background:rgba(30,64,128,.15);border:1px solid rgba(30,64,128,.4);border-radius:2px;padding:.95rem;margin-bottom:.75rem}
+.cct{font-family:'Playfair Display',serif;color:#90b8ff;margin-bottom:.38rem;font-size:.92rem}
+.ccr{font-size:.73rem;color:var(--sl);line-height:1.75}
+
+/* NOTÍCIA */
+.ni2{border-left:3px solid var(--d);padding:.52rem .72rem;margin-bottom:.52rem;background:rgba(255,255,255,.02)}
+.ni2.urgente{border-left-color:var(--vm2)}.ni2.positivo{border-left-color:#4caf50}
+.nd{font-size:.61rem;color:var(--sl);font-family:'Courier Prime',monospace}
+.nt{font-size:.79rem;color:var(--cr);margin-top:.16rem;line-height:1.5}
+
+/* MISC */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(201,168,76,.3);border-top-color:var(--d);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lr3{display:flex;align-items:center;gap:.55rem;color:var(--sl);font-size:.78rem;padding:.65rem}
+#toast{position:fixed;bottom:1.2rem;right:1.2rem;background:var(--vm);border:1px solid rgba(201,168,76,.5);color:var(--cr);padding:.72rem 1.05rem;border-radius:2px;font-size:.8rem;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:310px;line-height:1.5}
+#toast.on{transform:translateY(0);opacity:1}
+#toast.ok{border-color:#4caf5088}#toast.ko{border-color:#e5393588}
+@media(max-width:900px){.gb{grid-template-columns:180px 1fr}.rp{display:none}}
+@media(max-width:600px){.gb{grid-template-columns:1fr}.sn{display:none}}
+</style>
+</head>
+<body>
+<!-- INTRO -->
+<div id="intro">
+  <div class="it">Advocatus</div>
+  <div class="is">Simulador Jurídico Brasileiro</div>
+  <div class="isep"></div>
+  <div class="ic">
+    <h3>Crie seu perfil</h3>
+    <div class="fr">
+      <div class="fg"><label>Nome completo</label><input type="text" id="inp-nome" placeholder="Dr(a). ..." oninput="chkS()"/></div>
+      <div class="fg"><label>Especialização</label>
+        <select id="inp-esp" onchange="chkS()">
+          <option value="tributario">Direito Tributário</option>
+          <option value="trabalhista">Direito Trabalhista</option>
+          <option value="civil">Direito Civil</option>
+          <option value="criminal">Direito Criminal / Penal</option>
+          <option value="empresarial">Direito Empresarial</option>
+          <option value="constitucional">Direito Constitucional</option>
+          <option value="ambiental">Direito Ambiental</option>
+          <option value="previdenciario">Direito Previdenciário</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:.85rem">
+      <label>Trilha de carreira</label>
+      <div class="cg">
+        <button class="cb" data-c="adv_privado" onclick="selC(this)"><span class="ci">⚖️</span><strong>Advogado Privado</strong><div class="cs">Escritório autônomo</div></button>
+        <button class="cb" data-c="inhouse" onclick="selC(this)"><span class="ci">🏢</span><strong>In-House</strong><div class="cs">Jurídico corporativo</div></button>
+        <button class="cb" data-c="juiz" onclick="selC(this)"><span class="ci">🔨</span><strong>Magistratura</strong><div class="cs">Carreira pública · prova</div></button>
+        <button class="cb" data-c="promotor" onclick="selC(this)"><span class="ci">🛡️</span><strong>MP</strong><div class="cs">Ministério Público · prova</div></button>
+        <button class="cb" data-c="defensor" onclick="selC(this)"><span class="ci">🤝</span><strong>Defensoria</strong><div class="cs">Defensor Público · prova</div></button>
+      </div>
+    </div>
+    <div id="cinfo" style="font-size:.73rem;color:var(--sl);padding:.55rem;background:rgba(255,255,255,.03);border-radius:2px;display:none;line-height:1.7"></div>
+    <button class="bp" id="bst" disabled onclick="startGame()">Iniciar carreira →</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="gs">
+  <div class="tb">
+    <div class="tbl">Advocatus</div>
+    <div class="tbn" id="tbn">—</div>
+    <div class="tbg" id="tbc">—</div>
+    <div class="tbg" id="tbe" style="background:rgba(30,64,128,.2);border-color:rgba(30,64,128,.5);color:#90b8ff">—</div>
+    <div class="tbr">
+      <div class="sp">💰 <span class="v" id="tbd">R$ 0</span></div>
+      <div class="sp">⭐ <span class="v" id="tbr2">0</span></div>
+      <div class="sp">❤️ <span class="v" id="tbv">100</span></div>
+      <div class="td" id="tbt">Jan 2024 · Sem 1</div>
+      <button id="ba" onclick="advW()">▶ Avançar semana</button>
+    </div>
+  </div>
+  <div class="gb">
+    <nav class="sn">
+      <div class="ns">Escritório</div>
+      <div class="ni on" data-p="processos" onclick="sw('processos')">📁 Processos <span class="bx" id="bp2">0</span></div>
+      <div class="ni" data-p="audiencias" onclick="sw('audiencias')">🏛️ Audiências <span class="bx" id="baud" style="display:none">!</span></div>
+      <div class="ni" data-p="equipe" onclick="sw('equipe')">👔 Equipe</div>
+      <div class="ns">Carreira</div>
+      <div class="ni" data-p="progressao" onclick="sw('progressao')">🏆 Progressão</div>
+      <div class="ni" data-p="habilidades" onclick="sw('habilidades')">📚 Habilidades</div>
+      <div class="ni" data-p="cursos" onclick="sw('cursos')">🎓 Cursos & Pós</div>
+      <div class="ni" id="nc" data-p="concurso" onclick="sw('concurso')" style="display:none">📋 Concurso Público</div>
+      <div class="ns">Pessoal</div>
+      <div class="ni" data-p="patrimonio" onclick="sw('patrimonio')">🏠 Patrimônio</div>
+      <div class="ni" data-p="loja" onclick="sw('loja')">🛒 Compras</div>
+      <div class="ns">Info</div>
+      <div class="ni" data-p="noticias" onclick="sw('noticias')">📰 Feed <span class="bx" id="bnews">0</span></div>
+    </nav>
+    <main class="cp" id="cp"></main>
+    <aside class="rp">
+      <div class="rs"><div class="rt">Perfil</div>
+        <div class="nb" id="rpc">—</div>
+        <div class="xpw">
+          <div class="xpl"><span>XP para próximo cargo</span><span id="rxpl">0/100</span></div>
+          <div class="xpb"><div class="xpf" id="rxpb" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="rs"><div class="rt">Status</div>
+        <div class="sr"><span class="sl3">Reputação</span><span class="sv" id="rrep">0/100</span></div>
+        <div class="sr"><span class="sl3">Casos ativos</span><span class="sv" id="rcas">0</span></div>
+        <div class="sr"><span class="sl3">Taxa de vitória</span><span class="sv" id="rwin">—</span></div>
+        <div class="sr"><span class="sl3">Renda mensal</span><span class="sv mn" id="rrenda">R$ 0</span></div>
+        <div class="sr"><span class="sl3">Saldo</span><span class="sv mn" id="rsal">R$ 0</span></div>
+      </div>
+      <div class="rs"><div class="rt">Habilidades-chave</div><div id="rsm"></div></div>
+      <div class="rs"><div class="rt">Agenda</div><div id="rag"></div></div>
+    </aside>
+  </div>
+</div>
+
+<!-- MODAL PROCESSO -->
+<div class="mo h" id="pm">
+  <div class="mb">
+    <div class="mtt"><span id="pmt">Processo</span><span class="mc" onclick="cM('pm')">✕</span></div>
+    <div id="pmm" style="font-size:.74rem;color:var(--sl);margin-bottom:.75rem;line-height:1.7"></div>
+    <div id="pmc"></div>
+  </div>
+</div>
+
+<!-- EXAM -->
+<div class="exo h" id="exam">
+  <div class="exb">
+    <div class="exh" id="exh">Prova</div>
+    <div class="exs" id="exs">Questões</div>
+    <div id="exbd"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+// ══ PATCH: escolherPeca resultado incorreto (início do bloco JS) ══
+// Esta função é definida abaixo no fluxo completo do jogo.
+// O arquivo foi dividido em create_file + cat append, então o JS começa aqui completo.
+
+const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const CAREERS={
+  adv_privado:{label:'Advogado Privado',pub:false,info:'Começa como estagiário, passa pela OAB e constrói sua carteira de clientes. Honorários por caso. Total autonomia.'},
+  inhouse:{label:'Advogado In-House',pub:false,info:'Contratado em empresa. Salário fixo. Progressão interna rápida. Passe na OAB para advogar.'},
+  juiz:{label:'Magistratura',pub:true,cl:'Concurso da Magistratura (TJ/TRF)',info:'Percurso: Estagiário → OAB → Advogado Sênior → 3 anos → Concurso da Magistratura. Prova em 3 fases.'},
+  promotor:{label:'Ministério Público',pub:true,cl:'Concurso do MP (MPEJ/MPF)',info:'Percurso: Estagiário → OAB → Advogado Sênior → 3 anos → Concurso do MP. Exige processo penal aprofundado.'},
+  defensor:{label:'Defensoria Pública',pub:true,cl:'Concurso da DPE/DPU',info:'Percurso: Estagiário → OAB → Advogado Sênior → 3 anos → Concurso da DPE. Foco em direitos fundamentais.'},
+};
+const CARGOS=[
+  {id:'est', label:'Estagiário',         xp:0,    sal:1500,  anos:0,  oab:false,desc:'Início da jornada. Pesquisa e tarefas básicas.'},
+  {id:'ass', label:'Assistente Jurídico', xp:120,  sal:4000,  anos:0,  oab:false,desc:'Minutas simples. Auxilia advogados seniores.'},
+  {id:'_oab',label:'→ Prova da OAB',     xp:260,  sal:4000,  anos:0,  oab:true, desc:'Aprovação obrigatória para exercer a advocacia.'},
+  {id:'jnr', label:'Advogado Júnior',    xp:260,  sal:8000,  anos:0,  oab:true, desc:'Primeiro cargo pós-OAB. Casos simples.'},
+  {id:'pln', label:'Advogado Pleno',     xp:580,  sal:14000, anos:2,  oab:true, desc:'Casos complexos com supervisão.'},
+  {id:'snr', label:'Advogado Sênior',    xp:1100, sal:22000, anos:4,  oab:true, desc:'Autonomia total. Orienta juniores.'},
+  {id:'asc', label:'Associado',          xp:1800, sal:32000, anos:6,  oab:true, desc:'Decisões estratégicas. Carteira sólida.'},
+  {id:'soc', label:'Sócio',             xp:2800, sal:55000, anos:8,  oab:true, desc:'Cotista. Participa dos lucros.'},
+  {id:'snm', label:'Sócio Nominal',      xp:4500, sal:90000, anos:12, oab:true, desc:'O escritório leva seu nome.'},
+];
+const CARGOS_PUB={
+  juiz:[
+    {id:'jsub',label:'Juiz Substituto',    xp:0,   sal:35000,desc:'Primeiro cargo. Sujeito a remoções.'},
+    {id:'jtit',label:'Juiz Titular',       xp:900, sal:42000,desc:'Vara própria. Autonomia plena.'},
+    {id:'dsb', label:'Desembargador',      xp:2400,sal:57000,desc:'Tribunal de 2ª instância.'},
+    {id:'mstj',label:'Ministro STJ/STF',   xp:4200,sal:77000,desc:'Corte superior. Jurisprudência vinculante.'},
+  ],
+  promotor:[
+    {id:'padj',label:'Promotor Adjunto',   xp:0,   sal:32000,desc:'Casos de menor potencial ofensivo.'},
+    {id:'prom',label:'Promotor de Justiça',xp:700, sal:37000,desc:'Denúncias e recursos em vara própria.'},
+    {id:'pjus',label:'Procurador de Justiça',xp:1900,sal:50000,desc:'2ª instância. Pareceres no tribunal.'},
+    {id:'pgj', label:'PGJ / PGR',          xp:3600,sal:67000,desc:'Chefia do Ministério Público.'},
+  ],
+  defensor:[
+    {id:'dadj',label:'Defensor Adjunto',   xp:0,   sal:28000,desc:'Início. Casos de réu preso.'},
+    {id:'def', label:'Defensor Público',   xp:600, sal:33000,desc:'Defensoria consolidada.'},
+    {id:'dch', label:'Def. Público-Chefe', xp:1700,sal:46000,desc:'Coordenação de núcleo.'},
+    {id:'dge', label:'Defensor Geral',     xp:3100,sal:62000,desc:'Chefia da Defensoria.'},
+  ],
+};
+const CASOS={
+  tributario:[
+    {tipo:'Execução Fiscal (Lei 6.830/80)',sk:'tecnica',dica:'LEF art. 16: Embargos à EF quando há garantia do juízo; EPE para vícios manifestos sem necessidade de garantia.',
+     pecas:[
+      {id:'emb',label:'Embargos à Execução Fiscal',    c:true, desc:'Art. 16 LEF. Suspende a execução. Exige garantia do juízo.'},
+      {id:'epe',label:'Exceção de Pré-Executividade',  c:'p',  desc:'Cabível para vício manifesto (prescrição, ilegitimidade). Dispensa garantia.'},
+      {id:'ms', label:'Mandado de Segurança',           c:false,desc:'Inadequado: não suspende processo de execução fiscal.'},
+      {id:'rcv',label:'Reconvenção',                   c:false,desc:'Inaplicável em execução fiscal. Erro processual grave.'},
+     ]},
+    {tipo:'Auto de Infração ICMS',sk:'tecnica',dica:'Impugnar administrativamente (Decreto 70.235/72) antes do Judiciário. Esgotamento da via administrativa é necessário.',
+     pecas:[
+      {id:'imp',label:'Impugnação Administrativa',     c:true, desc:'Junta de Revisão Fiscal. Primeira fase obrigatória.'},
+      {id:'ms', label:'Mandado de Segurança',           c:'p',  desc:'Cabível apenas para ilegalidade flagrante e urgência.'},
+      {id:'anu',label:'Ação Anulatória (após adm.)',   c:'p',  desc:'Correta após esgotar via administrativa. Não imediata.'},
+      {id:'hc', label:'Habeas Corpus',                  c:false,desc:'Não há privação de liberdade em infração tributária.'},
+     ]},
+    {tipo:'Repetição de Indébito Tributário',sk:'pesquisa',dica:'CTN art. 165 + art. 168: prazo de 5 anos do pagamento indevido. Juros SELIC (STJ Tema 905).',
+     pecas:[
+      {id:'rep',label:'Ação de Repetição de Indébito', c:true, desc:'CTN art. 165. Prazo de 5 anos. Juros SELIC (Tema 905 STJ).'},
+      {id:'ms', label:'Mandado de Segurança',           c:'p',  desc:'Para tributo corrente. Não recupera o passado.'},
+      {id:'exe',label:'Ação de Execução Direta',       c:false,desc:'Sem título executivo — crédito precisa ser declarado primeiro.'},
+      {id:'com',label:'Pedido Adm. de Compensação',    c:'p',  desc:'Válido mas sujeito à homologação da RFB.'},
+     ]},
+  ],
+  trabalhista:[
+    {tipo:'Reclamação Trabalhista — Verbas Rescisórias',sk:'oratoria',dica:'CLT art. 840 + CF art. 114: competência exclusiva da JT. Prazo: 2 anos após extinção do contrato.',
+     pecas:[
+      {id:'rt', label:'Reclamação Trabalhista',         c:true, desc:'CLT art. 840. Competência da JT. Prazo de 2 anos.'},
+      {id:'ao', label:'Ação Civil Ordinária',           c:false,desc:'Errada: competência exclusiva da JT (CF art. 114).'},
+      {id:'am', label:'Ação Monitória',                 c:false,desc:'Instrumento do CPC, inaplicável na JT para verbas rescisórias.'},
+      {id:'di', label:'Dissídio Individual',            c:'p',  desc:'Correto para acordos coletivos; para verbas rescisórias use reclamação.'},
+     ]},
+    {tipo:'Acidente de Trabalho — Danos Morais',sk:'tecnica',dica:'SV 22 STF: competência da JT para indenizações por acidente de trabalho. Acumulação com INSS é possível.',
+     pecas:[
+      {id:'jt', label:'Reclamação Trabalhista (JT)',    c:true, desc:'SV 22 STF + CC 7204: JT julga ações de indenização por acidente.'},
+      {id:'tj', label:'Ação Cível (TJRJ)',              c:false,desc:'Incorreto após SV 22 STF. Competência da JT é exclusiva.'},
+      {id:'in', label:'Pedido Administrativo INSS',     c:'p',  desc:'Para benefício B91 (acidentário), não substitui a ação indenizatória.'},
+      {id:'ms', label:'Mandado de Segurança',           c:false,desc:'Não é a via para pleitear indenização trabalhista.'},
+     ]},
+  ],
+  civil:[
+    {tipo:'Cobrança — Título Executivo Extrajudicial',sk:'peticao',dica:'CPC art. 783: cheque, nota promissória e duplicata são títulos extrajudiciais. Execução direta.',
+     pecas:[
+      {id:'ex', label:'Ação de Execução (CPC 783)',    c:true, desc:'Título extrajudicial: execução imediata, sem fase de conhecimento.'},
+      {id:'mo', label:'Ação Monitória',                c:'p',  desc:'Para documentos sem eficácia de título executivo. Mais lenta.'},
+      {id:'cb', label:'Ação de Cobrança Ordinária',   c:false,desc:'Desnecessário — com título, a execução é imediata.'},
+      {id:'ar', label:'Cautelar de Arresto',           c:false,desc:'Apenas medida de garantia; não substitui a ação principal.'},
+     ]},
+    {tipo:'Rescisão Contratual com Perdas e Danos',sk:'peticao',dica:'CC art. 475: a parte lesada pode pedir resolução + perdas e danos cumulativamente.',
+     pecas:[
+      {id:'rs', label:'Ação de Resolução c/ Danos',   c:true, desc:'CC art. 475. Resolução por inadimplemento + indenização acumulada.'},
+      {id:'rv', label:'Ação Revisional',               c:false,desc:'Revisional é para desequilíbrio superveniente, não inadimplemento.'},
+      {id:'ex', label:'Ação de Execução',              c:false,desc:'Não há título executivo — precisa de fase de conhecimento.'},
+      {id:'mo', label:'Ação Monitória',                c:'p',  desc:'Cabível com prova escrita, mas não inclui pedido de rescisão.'},
+     ]},
+  ],
+  criminal:[
+    {tipo:'Flagrante Delito — Audiência de Custódia',sk:'oratoria',dica:'CPP art. 310 §1º: flagrante ilegal → HC + relaxamento; legal mas desnecessário → liberdade provisória.',
+     pecas:[
+      {id:'hc', label:'HC + Relaxamento de Prisão',   c:true, desc:'CPP art. 310 §1º. Flagrante ilegal: HC com pedido de relaxamento imediato.'},
+      {id:'lp', label:'Liberdade Provisória',          c:'p',  desc:'Cabe se o flagrante é legal mas a prisão preventiva é desnecessária.'},
+      {id:'ms', label:'Mandado de Segurança',          c:false,desc:'HC é o remédio constitucional correto para questionar prisão.'},
+      {id:'re', label:'Recurso em Sentido Estrito',    c:false,desc:'RESE impugna decisões interlocutórias, não o ato do flagrante.'},
+     ]},
+    {tipo:'Denúncia Criminal — Resposta à Acusação',sk:'peticao',dica:'CPP art. 396-A: após recebimento da denúncia, réu tem 10 dias para apresentar resposta à acusação.',
+     pecas:[
+      {id:'ra', label:'Resposta à Acusação (CPP 396-A)',c:true,desc:'CPP art. 396-A. Prazo: 10 dias. Pode suscitar absolvição sumária (art. 397).'},
+      {id:'hc', label:'HC Trancativo da Ação Penal',  c:'p',  desc:'Cabível se a conduta é atípica ou há ausência de justa causa manifesta.'},
+      {id:'ap', label:'Apelação Criminal',             c:false,desc:'Apelação é contra sentença. Não há sentença ainda.'},
+      {id:'co', label:'Contestação',                   c:false,desc:'Não existe contestação no processo penal. Terminologia civil.'},
+     ]},
+  ],
+  empresarial:[
+    {tipo:'Recuperação Judicial (Lei 11.101/05)',sk:'negociacao',dica:'Art. 51 Lei 11.101/2005: stay period de 180 dias. 60 dias para apresentar o plano.',
+     pecas:[
+      {id:'rj', label:'Pet. Inicial de RJ (Lei 11.101)',c:true,desc:'Art. 51 Lei 11.101/2005. Stay period 180 dias. 60 dias para o plano.'},
+      {id:'fa', label:'Pedido de Autofalência',         c:false,desc:'Autofalência encerra a empresa. Oposto da recuperação.'},
+      {id:'tu', label:'Tutela Cautelar de Suspensão',   c:'p',  desc:'Medida de urgência, não substitui o pedido de RJ.'},
+      {id:'co', label:'Concordata',                     c:false,desc:'Extinta desde 2005 pela Lei 11.101. Não existe mais.'},
+     ]},
+    {tipo:'Exclusão de Sócio por Justa Causa',sk:'negociacao',dica:'CC art. 1.085: sócio majoritário pode excluir minoritário por falta grave mediante alteração contratual.',
+     pecas:[
+      {id:'ex', label:'Ação de Exclusão de Sócio',    c:true, desc:'CC art. 1.085. Falta grave comprovada. Procedimento em alteração contratual.'},
+      {id:'di', label:'Ação de Dissolução Total',      c:false,desc:'Dissolução é mais drástica e inadequada para exclusão de um sócio.'},
+      {id:'am', label:'Ação Monitória',                c:false,desc:'Não é a via para questionar relação societária.'},
+      {id:'ma', label:'Mandado de Segurança',          c:false,desc:'Não há ato de autoridade pública. Relação privada societária.'},
+     ]},
+  ],
+  constitucional:[
+    {tipo:'Inconstitucionalidade — Controle Difuso',sk:'pesquisa',dica:'CF art. 97 + CPC art. 948: reserva de plenário. Controle difuso: qualquer juiz afasta a lei no caso concreto.',
+     pecas:[
+      {id:'ii', label:'Incidente de Inconstitucionalidade (CPC 948)',c:true,desc:'Art. 948 CPC: suscitar no caso concreto. Pleno ou órgão especial do tribunal.'},
+      {id:'ad', label:'ADI no STF',                   c:false,desc:'ADI: legitimados restritos (CF art. 103). Particular não tem legitimidade.'},
+      {id:'ap', label:'ADPF',                          c:'p',  desc:'Legitimação restrita. Apenas se não houver outro meio eficaz.'},
+      {id:'ms', label:'Mandado de Segurança',          c:false,desc:'MS não é instrumento de controle de constitucionalidade.'},
+     ]},
+  ],
+  ambiental:[
+    {tipo:'Auto de Infração Ambiental — IBAMA',sk:'tecnica',dica:'Decreto 6.514/2008 art. 71: prazo de 20 dias para defesa administrativa após autuação.',
+     pecas:[
+      {id:'da', label:'Defesa Adm. (Dec. 6.514/08)',  c:true, desc:'Art. 71 Decreto 6.514/08: 20 dias para defesa após a autuação.'},
+      {id:'ms', label:'Mandado de Segurança',          c:'p',  desc:'Cabível para ilegalidade flagrante. Não suspende multa automaticamente.'},
+      {id:'an', label:'Ação Anulatória (pós adm.)',    c:'p',  desc:'Após esgotamento administrativo. Não imediata.'},
+      {id:'hc', label:'Habeas Corpus',                 c:false,desc:'Não há privação de liberdade em infração ambiental administrativa.'},
+     ]},
+  ],
+  previdenciario:[
+    {tipo:'Benefício por Incapacidade Negado pelo INSS',sk:'peticao',dica:'Lei 8.213/91 + Lei 10.259/01: JEF até 60 SM. Prova pericial fundamental. Via adm. não é obrigatória.',
+     pecas:[
+      {id:'jef',label:'Ação de Benef. (JEF/JF)',      c:true, desc:'Lei 8.213/91 + Lei 10.259/01. JEF até 60 SM. Perícia médica essencial.'},
+      {id:'ms', label:'Mandado de Segurança',          c:'p',  desc:'Cabível se omissão do INSS além de 45 dias (Lei 9.784). Uso tático.'},
+      {id:'rad',label:'Recurso Adm. (CRPS/INSS)',      c:'p',  desc:'Primeiro nível recursal administrativo. Não é obrigatório antes do JEF.'},
+      {id:'ex', label:'Ação de Execução vs INSS',      c:false,desc:'Sem título executivo. Precisa de ação de conhecimento primeiro.'},
+     ]},
+  ],
+};
+const SKDEF=[
+  {k:'peticao',  l:'Peças Processuais',     cl:'az'},{k:'oratoria',  l:'Oratória / Sustentação',cl:'dr'},
+  {k:'pesquisa', l:'Pesquisa Jurídica',     cl:'vd'},{k:'negociacao',l:'Negociação',            cl:'rx'},
+  {k:'tecnica',  l:'Técnica Jurídica',      cl:'lr2'},{k:'gestao',   l:'Gestão de Escritório',  cl:'vd'},
+  {k:'networking',l:'Networking',           cl:'rx'},{k:'pressao',  l:'Resiliência',            cl:'az'},
+];
+const TRIBUNAIS={
+  tributario:['CARF','TRF-2 — 4ª Turma','TJRJ — Fazenda Pública','JFRJ — 13ª Vara','TRF-2'],
+  trabalhista:['TRT-1 — 1ª Vara do Trabalho','TRT-1 — 7ª Vara','TRT-1 — 23ª Vara','TST — 1ª Turma'],
+  civil:['TJRJ — 1ª Vara Cível','TJRJ — 4ª Câmara Cível','TJRJ — 7ª Vara Cível','STJ — 3ª Turma'],
+  criminal:['TJRJ — 1ª Vara Criminal','TJRJ — 2ª Câmara Criminal','STJ — 5ª Turma','STF'],
+  empresarial:['TJRJ — Vara Empresarial','TRF-2','STJ — 3ª Turma'],
+  constitucional:['STF — Plenário','STF — 1ª Turma','STJ — Corte Especial','TRF-2'],
+  ambiental:['TJRJ — Vara do Meio Ambiente','TRF-2 — 6ª Turma','STJ — 2ª Turma'],
+  previdenciario:['JEF — Rio de Janeiro','TRF-2 — 1ª Turma Esp.','TNU','JFRJ — 12ª Vara Federal'],
+};
+const PAT={
+  moradia:[{id:'alg',l:'Aluguel kitnet',i:'🏠',v:0,cm:2500},{id:'apm',l:'Apartamento médio',i:'🏢',v:400000,cm:3500},{id:'cas',l:'Casa no bairro',i:'🏡',v:800000,cm:4500},{id:'cob',l:'Cobertura duplex',i:'🏰',v:2500000,cm:8000}],
+  transporte:[{id:'mtr',l:'Transporte público',i:'🚇',v:0,cm:400},{id:'crp',l:'Carro popular',i:'🚗',v:75000,cm:1200},{id:'sed',l:'Sedan executivo',i:'🚙',v:250000,cm:3500},{id:'suv',l:'SUV de luxo',i:'🛻',v:650000,cm:6000}],
+  escritorio:[{id:'cw',l:'Coworking jurídico',i:'💼',v:0,cm:1800},{id:'sal',l:'Sala própria',i:'🏛️',v:0,cm:5000},{id:'esm',l:'Escritório médio',i:'🏢',v:0,cm:12000},{id:'esp',l:'Escritório premium',i:'⚖️',v:0,cm:28000}],
+};
+const SHOP=[
+  {id:'tn',i:'👔',n:'Terno italiano',    p:8000, d:'+15 reputação',         e:()=>{G.rep=Math.min(100,G.rep+15)}},
+  {id:'bj',i:'📚',n:'Biblioteca jurídica',p:15000,d:'+20 Pesquisa',          e:()=>{G.sk.pesquisa=Math.min(100,G.sk.pesquisa+20)}},
+  {id:'nb',i:'💻',n:'Notebook Pro',      p:12000,d:'+10 Peças e Pesquisa',  e:()=>{G.sk.peticao=Math.min(100,G.sk.peticao+10);G.sk.pesquisa=Math.min(100,G.sk.pesquisa+10)}},
+  {id:'pg',i:'🎓',n:'Pós-grad. OAB',    p:25000,d:'+25 Técnica',           e:()=>{G.sk.tecnica=Math.min(100,G.sk.tecnica+25)}},
+  {id:'rl',i:'⌚',n:'Relógio de luxo',   p:35000,d:'+8 rep',                e:()=>{G.rep=Math.min(100,G.rep+8)}},
+  {id:'ac',i:'🏋️',n:'Academia premium', p:3000, d:'+15 Saúde/Resiliência', e:()=>{G.vida=Math.min(100,G.vida+15);G.sk.pressao=Math.min(100,G.sk.pressao+10)}},
+  {id:'ai',i:'🤖',n:'Assistente IA Jur.',p:50000,d:'+15 em tudo',           e:()=>{Object.keys(G.sk).forEach(k=>G.sk[k]=Math.min(100,G.sk[k]+15))}},
+  {id:'cg',i:'✈️',n:'Congresso em Lisboa',p:18000,d:'+25 rep · +15 Network',e:()=>{G.rep=Math.min(100,G.rep+25);G.sk.networking=Math.min(100,G.sk.networking+15)}},
+];
+const CURSOS=[
+  {id:'arb',n:'Curso de Arbitragem',       i:'⚖️',sem:6, c:15000,sk:'negociacao',b:25,creq:'jnr'},
+  {id:'mba',n:'MBA Compliance Corp.',      i:'🏛️',sem:16,c:55000,sk:'gestao',    b:30,creq:'pln'},
+  {id:'llm',n:'LLM Direito Tributário',    i:'📜',sem:12,c:40000,sk:'tecnica',   b:30,creq:'jnr'},
+  {id:'int',n:'Tributação Internacional',  i:'🌍',sem:8, c:22000,sk:'pesquisa',  b:20,creq:'pln'},
+  {id:'lit',n:'Litigância Estratégica',    i:'⚔️',sem:4, c:10000,sk:'oratoria',  b:20,creq:'ass'},
+  {id:'crf',n:'Especialização CARF/TRF',   i:'🔬',sem:10,c:30000,sk:'tecnica',   b:25,creq:'snr'},
+  {id:'ges',n:'MBA Gestão de Escritório',  i:'📊',sem:12,c:35000,sk:'gestao',    b:30,creq:'pln'},
+];
+const AUTORES=['João da Silva ME','Maria Oliveira Assoc.','Pedro Souza Ltda','Construtora Beta S/A','Ana Lima Prod.','Tech Solutions S/A','Farmácias Unidos S/A','Supermercado Alfa Ltda','Grupo Gama S/A'];
+const REUS=['Estado do Rio de Janeiro','Município do Rio de Janeiro','União Federal','Banco Central do Brasil','Seguros Confiança S/A','Empregador Principal Ltda','INSS','Receita Federal','IBAMA','SEFAZ-RJ'];
+const ENOMES=['Beatriz Fontes','Lucas Mendes','Ana Rocha','Gabriel Peixoto','Thiago Alves','Mariana Costa','Pedro Lima','Júlia Freitas','Rafael Nunes','Camila Borges'];
+const FACS=['UERJ','FGV Direito','PUC-Rio','UFRJ','UFF','IBMEC','UCB','Mackenzie-RJ'];
+
+let G={},selCareer=null,pctr=10000,exSt={};
+const fmt=n=>'R$ '+Math.floor(n).toLocaleString('pt-BR');
+const fK=n=>n>=1000?'R$'+Math.floor(n/1000)+'k':fmt(n);
+const rnd=n=>Math.floor(Math.random()*n);
+
+// ══ INTRO ══
+function selC(el){
+  document.querySelectorAll('.cb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');selCareer=el.dataset.c;
+  const ci=document.getElementById('cinfo');
+  ci.textContent=CAREERS[selCareer].info;ci.style.display='block';chkS();
+}
+function chkS(){
+  const n=document.getElementById('inp-nome').value.trim();
+  document.getElementById('bst').disabled=!(n&&selCareer);
+}
+function startGame(){
+  const nome=document.getElementById('inp-nome').value.trim();
+  const esp=document.getElementById('inp-esp').value;
+  const pub=CAREERS[selCareer].pub;
+  G={nome,career:selCareer,esp,ci:0,oab:false,cprova:false,cdispon:false,anos:0,sg:0,sem:1,mes:0,ano:2024,
+    xp:0,xpn:120,rep:30,vida:100,feliz:80,dinheiro:pub?8000:12000,renda:1500,wins:0,losses:0,
+    sk:{peticao:15,oratoria:12,pesquisa:18,negociacao:15,tecnica:15,gestao:8,networking:12,pressao:18},
+    pat:{moradia:'alg',transporte:'mtr',escritorio:'cw'},compras:[],cursos:[],estagiarios:[],procs:[],prfin:[],noticias:[],audpend:[]};
+  const bk={tributario:'tecnica',trabalhista:'oratoria',civil:'peticao',criminal:'oratoria',empresarial:'negociacao',constitucional:'pesquisa',ambiental:'pesquisa',previdenciario:'peticao'};
+  if(bk[esp])G.sk[bk[esp]]+=10;
+  if(pub)document.getElementById('nc').style.display='';
+  G.procs.push(mkProc());calcR();
+  document.getElementById('intro').style.display='none';
+  document.getElementById('gs').classList.add('on');
+  updTb();updR();sw('processos');
+  toast(`Bem-vindo(a), ${nome}! Cargo inicial: ${cargo().label}`,'ok');
+}
+
+// ══ CARGOS ══
+function listaC(){
+  if(CAREERS[G.career].pub&&!G.cprova)return CARGOS.slice(0,6);
+  if(CAREERS[G.career].pub&&G.cprova)return CARGOS_PUB[G.career]||CARGOS_PUB.juiz;
+  return CARGOS;
+}
+function cargo(){return listaC()[G.ci]||listaC()[0]}
+function prxC(){const l=listaC();return l[G.ci+1]||null}
+function calcR(){
+  const c=cargo();
+  G.renda=c.sal+(G.career==='adv_privado'?G.procs.reduce((a,p)=>a+p.hon*.04,0):0);
+}
+function calcD(){
+  let d=0;
+  Object.entries(PAT).forEach(([cat,its])=>{const a=its.find(i=>i.id===G.pat[cat]);if(a)d+=a.cm;});
+  d+=G.estagiarios.length*1200;return d;
+}
+function prom(){
+  const lista=listaC();const prx=lista[G.ci+1];
+  if(!prx)return;
+  if(prx.oab&&!G.oab){toast('⚠️ Passe na OAB primeiro!','ko');sw('progressao');return;}
+  if(prx.xp&&G.xp<prx.xp){toast(`XP insuficiente: ${G.xp}/${prx.xp}`,'ko');return;}
+  if(prx.anos&&G.anos<prx.anos){toast(`Necessário ${prx.anos} anos de carreira. Você tem ${G.anos}.`,'ko');return;}
+  G.ci++;calcR();
+  toast(`🎉 Promovido(a) para ${cargo().label}!`,'ok');
+  noticia(`Promoção: você agora é ${cargo().label}`,'positivo');
+  chkConc();updTb();updR();sw('progressao');
+}
+
+// ══ PROCESSOS ══
+function mkProc(o={}){
+  const esp=G.esp||'civil';const casos=CASOS[esp]||CASOS.civil;const mod=casos[rnd(casos.length)];
+  const trbs=TRIBUNAIS[esp]||TRIBUNAIS.civil;
+  const num=`${String(pctr++).padStart(7,'0')}-${String(rnd(99)).padStart(2,'0')}.2024.8.19.0001`;
+  return{id:Math.random().toString(36).substr(2,9),numero:num,tipo:o.tipo||mod.tipo,
+    pecas:mod.pecas,sk:mod.sk,dica:mod.dica,
+    autor:o.autor||AUTORES[rnd(AUTORES.length)],reu:o.reu||REUS[rnd(REUS.length)],
+    tribunal:o.tribunal||trbs[rnd(trbs.length)],status:'andamento',urgente:Math.random()<.2,
+    fase:'Petição Inicial',peca:null,valor:Math.floor(Math.random()*500000+20000),
+    hon:Math.floor(Math.random()*50000+5000),criado:`S${G.sg}`,
+    audsem:Math.random()<.3?G.sg+rnd(5)+1:null};
+}
+
+// ══ TOPBAR / RIGHT ══
+function updTb(){
+  document.getElementById('tbn').textContent=G.nome;
+  document.getElementById('tbc').textContent=cargo().label;
+  document.getElementById('tbe').textContent=G.esp.charAt(0).toUpperCase()+G.esp.slice(1);
+  document.getElementById('tbd').textContent=fmt(G.dinheiro);
+  document.getElementById('tbr2').textContent=G.rep;
+  document.getElementById('tbv').textContent=G.vida;
+  document.getElementById('tbt').textContent=`${MN[G.mes]} ${G.ano} · Sem ${G.sem}`;
+  document.getElementById('bp2').textContent=G.procs.length;
+  const pa=G.audpend.filter(id=>G.procs.some(p=>p.id===id)).length;
+  const ba=document.getElementById('baud');ba.style.display=pa>0?'':'none';if(pa>0)ba.textContent=pa;
+  const nn=G.noticias.filter(n=>!n.lida).length;document.getElementById('bnews').textContent=nn||'';
+}
+function updR(){
+  const lista=listaC(),c=cargo(),prx=lista[G.ci+1];
+  const pct=prx&&prx.xp?Math.min(100,(G.xp/prx.xp)*100):100;
+  document.getElementById('rpc').textContent=c.label;
+  document.getElementById('rxpl').textContent=prx?`${G.xp}/${prx.xp} XP`:'MAX';
+  document.getElementById('rxpb').style.width=pct+'%';
+  document.getElementById('rrep').textContent=G.rep+'/100';
+  document.getElementById('rcas').textContent=G.procs.length;
+  const tot=G.wins+G.losses;
+  document.getElementById('rwin').textContent=tot>0?Math.round(G.wins/tot*100)+'%':'—';
+  calcR();document.getElementById('rrenda').textContent=fmt(G.renda);
+  document.getElementById('rsal').textContent=fmt(G.dinheiro);
+  document.getElementById('rsm').innerHTML=SKDEF.slice(0,4).map(s=>`
+    <div style="margin-bottom:.42rem">
+      <div class="sl2">${s.l}<span>${G.sk[s.k]}</span></div>
+      <div class="sb"><div class="sf ${s.cl}" style="width:${G.sk[s.k]}%"></div></div>
+    </div>`).join('');
+  const ags=[];
+  const pa2=G.audpend.filter(id=>G.procs.some(p=>p.id===id));
+  if(pa2.length)ags.push(`<div style="font-size:.73rem;color:#ff8096;margin-bottom:.28rem">🔴 ${pa2.length} audiência(s) pendente(s)</div>`);
+  if(G.cdispon&&!G.cprova)ags.push(`<div style="font-size:.73rem;color:#90b8ff;margin-bottom:.28rem">📋 Concurso público disponível!</div>`);
+  G.procs.filter(p=>p.audsem&&p.audsem>G.sg).slice(0,2).forEach(p=>ags.push(`<div style="font-size:.7rem;color:var(--sl);margin-bottom:.22rem">📅 ${p.tipo.slice(0,24)}… S${p.audsem}</div>`));
+  if(!ags.length)ags.push('<div style="font-size:.73rem;color:var(--sl)">Sem eventos imediatos.</div>');
+  document.getElementById('rag').innerHTML=ags.join('');
+}
+
+// ══ PANELS ══
+function sw(p){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
+  const cp=document.getElementById('cp');cp.innerHTML='';
+  ({processos:rProcs,audiencias:rAuds,equipe:rEq,progressao:rProg,habilidades:rSkills,
+    cursos:rCursos,concurso:rConc,patrimonio:rPat,loja:rLoja,noticias:rNews})[p]?.(cp);
+}
+
+// ── PROCESSOS ──
+function rProcs(cp){
+  const ok=G.oab||['est','ass'].includes(cargo().id);
+  cp.innerHTML=`<div class="ph">
+    <div><div class="pt">📁 Processos</div><div class="ps">${G.procs.length} ativo(s) · ${G.prfin.length} encerrado(s) · Área: <b>${G.esp}</b></div></div>
+    <button class="bp" style="width:auto;margin:0;padding:.45rem .85rem;font-size:.73rem" onclick="novoCasoIA()" ${!ok?'disabled':''}>+ Novo caso</button>
+  </div>`;
+  if(!G.procs.length){cp.innerHTML+=`<div class="cd" style="text-align:center;padding:2rem;color:var(--sl)">Nenhum processo ativo.</div>`;return;}
+  G.procs.forEach(p=>{
+    cp.innerHTML+=`<div class="pc ${p.urgente?'up':''}" onclick="abrirP('${p.id}')">
+      <div class="pn">${p.numero}</div>
+      <div class="pp">${p.autor} <span style="opacity:.5">vs</span> ${p.reu}</div>
+      <div class="pto">${p.tipo} · ${p.tribunal}</div>
+      <div class="pm">
+        <span class="pt2 andamento">${p.fase}</span>
+        ${p.urgente?'<span class="pt2 urgente">URGENTE</span>':''}
+        ${p.peca?`<span class="pt2" style="color:#90b8ff">✓ ${p.peca.slice(0,22)}</span>`:'<span class="pt2" style="color:#ffa726">⚠ Peça pendente</span>'}
+        <span class="pt2" style="margin-left:auto;color:var(--d)">${fK(p.valor)}</span>
+        <span class="pt2" style="color:#69e08a">Hon:${fK(p.hon)}</span>
+      </div>
+    </div>`;
+  });
+  if(G.prfin.length){
+    cp.innerHTML+=`<div style="margin-top:1.1rem;font-size:.7rem;color:var(--sl);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.42rem">Finalizados</div>`;
+    [...G.prfin].slice(-5).reverse().forEach(p=>{
+      cp.innerHTML+=`<div class="pc" style="opacity:.48"><div class="pn">${p.numero}</div>
+        <div class="pp">${p.autor} vs ${p.reu}</div>
+        <div class="pm"><span class="pt2 ${p.status}">${p.status==='ganho'?'GANHO ✓':'PERDIDO ✗'}</span><span class="pt2" style="margin-left:auto">${fK(p.hon)}</span></div>
+      </div>`;
+    });
+  }
+}
+function abrirP(id){
+  const p=G.procs.find(x=>x.id===id);if(!p)return;
+  document.getElementById('pmt').textContent=p.tipo;
+  document.getElementById('pmm').innerHTML=`<b style="color:var(--cr)">${p.autor}</b> vs <b style="color:var(--cr)">${p.reu}</b><br>
+    ${p.tribunal} · Fase: <b>${p.fase}</b> · Valor: ${fmt(p.valor)}<br>
+    Honorários: <b style="color:#69e08a">${fmt(p.hon)}</b>${p.urgente?'<br><span style="color:#ff8096">⚠️ URGENTE</span>':''}`;
+  p.peca?rAcoesP(p):rEscolhaPeca(p);
+  document.getElementById('pm').classList.remove('h');
+}
+function rEscolhaPeca(p){
+  const sv=G.sk[p.sk]||20;const skL=SKDEF.find(s=>s.k===p.sk)?.l||p.sk;
+  document.getElementById('pmc').innerHTML=`
+    <div style="background:rgba(30,64,128,.15);border:1px solid rgba(30,64,128,.3);padding:.7rem;border-radius:2px;margin-bottom:.85rem">
+      <div style="font-size:.78rem;font-weight:600;color:#90b8ff;margin-bottom:.28rem">⚖️ Escolha a peça processual correta</div>
+      <div style="font-size:.73rem;color:var(--sl);line-height:1.6">Habilidade em <b style="color:var(--cr)">${skL}</b>: <b style="color:var(--d)">${sv}/100</b></div>
+    </div>
+    <div style="font-size:.8rem;color:var(--cr);margin-bottom:.6rem">Qual medida processual é adequada para este caso?</div>
+    <div class="pg">
+      ${p.pecas.map(pc=>`<button class="pb2" onclick="escolherPeca('${p.id}','${pc.id}')">
+        <span class="pbt">${pc.label}</span><span class="pbd">${pc.desc}</span>
+      </button>`).join('')}
+    </div>`;
+}
+function escolherPeca(pid,pecId){
+  const p=G.procs.find(x=>x.id===pid);if(!p)return;
+  const pec=p.pecas.find(x=>x.id===pecId);if(!pec)return;
+  p.peca=pec.label;
+  const sv=G.sk[p.sk]||20;
+  let res,cl,xp,rd,html;
+  if(pec.c===true){
+    const ok=Math.random()<(.45+sv/200);
+    if(ok){res='✅ Peça correta!';cl='ok';xp=38;rd=8;html=`Excelente! <b>${pec.label}</b> é o instrumento adequado.<br><br><i style="color:var(--sl);font-size:.72rem">📖 ${p.dica}</i>`;p.fase='Contestação';}
+    else{res='⚠️ Correto, mas execução falhou';cl='pc2';xp=16;rd=2;html=`Você identificou a peça certa (<b>${pec.label}</b>), mas houve falha técnica. Pratique ${skL}.`;}
+  } else if(pec.c==='p'){
+    res='🟡 Peça parcialmente cabível';cl='pc2';xp=20;rd=3;
+    html=`<b>${pec.label}</b> tem algum cabimento, mas não é a melhor escolha.<br><br><i style="color:var(--sl);font-size:.72rem">📖 ${p.dica}</i>`;
+    if(Math.random()<.4)p.fase='Contestação';
+  } else {
+    res='❌ Peça incorreta!';cl='ko';xp=8;rd=-5;
+    html=`<b>${pec.label}</b> não é a via processual adequada. O processo sofreu prejuízo.<br><br><i style="color:var(--sl);font-size:.72rem">📖 ${p.dica}</i>`;
+    G.losses++;
+  }
+  gainXP(xp);G.rep=Math.max(0,Math.min(100,G.rep+rd));gainSk(p.sk,pec.c===true?3:1);
+  document.querySelectorAll('.pb2').forEach(b=>b.disabled=true);
+  document.getElementById('pmc').innerHTML+=`
+    <div class="rb ${cl}" style="margin-top:.8rem">
+      <div style="font-weight:700;margin-bottom:.38rem">${res}</div>${html}
+      <div style="margin-top:.55rem;font-size:.73rem;opacity:.8">+${xp} XP · Rep ${rd>=0?'+':''}${rd}</div>
+    </div>
+    <div style="display:flex;gap:.45rem;margin-top:.85rem">
+      <button class="bp" style="margin:0;flex:1;padding:.48rem;font-size:.8rem" onclick="cM('pm');sw('processos')">Voltar</button>
+      ${pec.c===true||pec.c==='p'?`<button class="bp" style="margin:0;flex:1;padding:.48rem;font-size:.8rem;background:var(--vc);color:var(--cr)" onclick="cM('pm');setTimeout(()=>abrirPAcoes('${p.id}'),80)">Próxima ação →</button>`:''}
+    </div>`;
+  updTb();updR();
+}
+function abrirPAcoes(id){
+  const p=G.procs.find(x=>x.id===id);if(!p)return;
+  document.getElementById('pmt').textContent=p.tipo;
+  document.getElementById('pmm').innerHTML=`<b>${p.autor}</b> vs <b>${p.reu}</b> · ${p.tribunal} · Fase: <b>${p.fase}</b><br>Peça: <b style="color:#90b8ff">${p.peca}</b>`;
+  rAcoesP(p);document.getElementById('pm').classList.remove('h');
+}
+function rAcoesP(p){
+  document.getElementById('pmc').innerHTML=`
+    <div class="al" id="plog"><span class="ls">[ Sistema ] ${p.fase} · Peça: ${p.peca||'—'}</span><br></div>
+    <div style="font-size:.78rem;color:var(--sl);margin-bottom:.55rem">Escolha a próxima ação:</div>
+    <div class="pg">
+      <button class="pb2" onclick="acaoP('${p.id}','audiencia')"><span class="pbt">🏛️ Realizar audiência</span><span class="pbd">Sustentação oral. IA decide o resultado.</span></button>
+      <button class="pb2" onclick="acaoP('${p.id}','recurso')"><span class="pbt">📄 Interpor recurso</span><span class="pbd">Apelação / Agravo. Avança instância.</span></button>
+      <button class="pb2" onclick="acaoP('${p.id}','acordo')"><span class="pbt">🤝 Propor acordo</span><span class="pbd">Encerra rapidamente. Honorários parciais.</span></button>
+      <button class="pb2" onclick="acaoP('${p.id}','pesquisa')"><span class="pbt">🔬 Pesquisa jurídica</span><span class="pbd">Fortalece argumentos. +habilidade.</span></button>
+    </div>`;
+}
+async function acaoP(id,acao){
+  const p=G.procs.find(x=>x.id===id);if(!p)return;
+  const log=document.getElementById('plog');
+  document.querySelectorAll('.pb2').forEach(b=>b.disabled=true);
+  log.innerHTML+=`<div class="lr3"><div class="spin"></div> Processando...</div>`;
+  const sm={audiencia:'oratoria',recurso:'peticao',acordo:'negociacao',pesquisa:'pesquisa'};
+  const sv=G.sk[sm[acao]]||20;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
+Narrador de jogo jurídico brasileiro. Cena CURTA (6-9 linhas) para:
+- Advogado: ${G.nome} (${cargo().label} · ${G.esp})
+- Processo: ${p.tipo} — ${p.autor} vs ${p.reu} — ${p.tribunal}
+- Peça: ${p.peca} · Fase: ${p.fase} · Ação: ${acao} · Skill ${sm[acao]}: ${sv}/100
+
+USE EXATAMENTE estes prefixos por linha:
+[SISTEMA] narração · [JUIZ] fala · [ADVOGADO] fala · [OPONENTE] fala
+[RESULTADO] GANHOU ou PERDEU ou CONTINUANDO · +XPnumero · rep:+/-numero · conclusão
+Cite artigos/súmulas reais. Dramático. Máx 200 palavras.`}]})});
+    const d=await res.json();const txt=d.content[0].text;
+    let html='';let xpG=22,repD=3,pRes=null;
+    txt.split('\n').filter(l=>l.trim()).forEach(l=>{
+      if(l.includes('[SISTEMA]'))html+=`<span class="ls">${l}</span><br>`;
+      else if(l.includes('[JUIZ]'))html+=`<span class="lj">${l}</span><br>`;
+      else if(l.includes('[ADVOGADO]'))html+=`<span class="la">${l}</span><br>`;
+      else if(l.includes('[OPONENTE]'))html+=`<span class="lo">${l}</span><br>`;
+      else if(l.includes('[RESULTADO]')){
+        html+=`<br><span class="lr">${l}</span><br>`;
+        const xM=l.match(/\+XP(\d+)/i)||l.match(/\+(\d+)\s*XP/i);if(xM)xpG=parseInt(xM[1]);
+        const rM=l.match(/rep:\s*([+-]?\d+)/i);if(rM)repD=parseInt(rM[1]);
+        if(/GANHOU/i.test(l))pRes='ganho';else if(/PERDEU/i.test(l))pRes='perdido';
+      } else html+=`<span style="color:#a8c5a8">${l}</span><br>`;
+    });
+    log.innerHTML=html;log.scrollTop=log.scrollHeight;
+    gainXP(xpG);G.rep=Math.max(0,Math.min(100,G.rep+repD));gainSk(sm[acao],sv<50?3:1);
+    if(pRes==='ganho'){G.dinheiro+=p.hon;G.wins++;G.rep=Math.min(100,G.rep+10);toast(`✅ Vitória! +${fmt(p.hon)} honorários`,'ok');p.status='ganho';finP(p.id);}
+    else if(pRes==='perdido'){G.losses++;G.rep=Math.max(0,G.rep-5);toast('❌ Encerrado desfavoravelmente.','ko');p.status='perdido';finP(p.id);}
+    else{const fs=['Petição Inicial','Contestação','Instrução','Audiência','Sentença'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
+    const bd=document.createElement('div');bd.style.cssText='display:flex;gap:.42rem;margin-top:.85rem';
+    bd.innerHTML=`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
+      ${!pRes?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${p.id}'))">Nova ação</button>`:''}`;
+    log.parentElement.appendChild(bd);updTb();updR();
+  }catch(e){log.innerHTML+='<span style="color:#ff8096">Erro. Tente novamente.</span>';document.querySelectorAll('.pb2').forEach(b=>b.disabled=false);}
+}
+function finP(id){const i=G.procs.findIndex(x=>x.id===id);if(i<0)return;G.prfin.push(G.procs[i]);G.procs.splice(i,1);}
+
+// ── AUDIÊNCIAS ──
+function rAuds(cp){
+  const ag=G.procs.filter(p=>p.audsem&&p.audsem<=G.sg+3);
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🏛️ Audiências</div><div class="ps">${ag.length} próxima(s)</div></div></div>`;
+  if(!ag.length){cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:2rem">Nenhuma audiência próxima.</div>`;return;}
+  ag.forEach(p=>{
+    const d=p.audsem-G.sg;const lb=d<=0?'🔴 HOJE':d===1?'🟡 Próxima semana':`🟢 Em ${d} sem.`;
+    cp.innerHTML+=`<div class="cd"><div class="ct">🏛️ ${p.tipo}</div>
+      <div style="font-size:.78rem;color:var(--sl)">${p.autor} vs ${p.reu} · ${p.tribunal}</div>
+      <div style="margin:.38rem 0;font-size:.78rem">${lb}</div>
+      <button class="bp" style="width:auto;margin:.38rem 0 0;padding:.42rem .95rem;font-size:.73rem" onclick="abrirPAcoes('${p.id}')">Realizar audiência</button>
+    </div>`;
+  });
+}
+
+// ── PROGRESSÃO ──
+function rProg(cp){
+  const lista=listaC(),pub=CAREERS[G.career].pub;
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🏆 Progressão</div><div class="ps">${cargo().label} · ${G.anos} ano(s) · XP: ${G.xp}</div></div></div>`;
+  if(pub&&!G.cprova){
+    cp.innerHTML+=`<div class="cc"><div class="cct">📋 ${CAREERS[G.career].cl}</div><div class="ccr">
+      ${G.oab?'✅':'❌'} OAB aprovada &nbsp;
+      ${G.anos>=3?'✅':'❌'} 3 anos de carreira (você: ${G.anos}) &nbsp;
+      ${G.rep>=60?'✅':'❌'} Reputação ≥ 60 (você: ${G.rep})<br>
+      ${G.ci>=5?'✅':'❌'} Advogado Sênior+ (atual: ${cargo().label})<br>
+      ${G.sk.tecnica>=70?'✅':'❌'} Técnica ≥ 70 (${G.sk.tecnica}) &nbsp;
+      ${G.sk.pesquisa>=65?'✅':'❌'} Pesquisa ≥ 65 (${G.sk.pesquisa}) &nbsp;
+      ${G.sk.oratoria>=60?'✅':'❌'} Oratória ≥ 60 (${G.sk.oratoria})<br>
+      ${G.cdispon?'<b style="color:#69e08a">✅ Concurso disponível! Acesse o menu.</b>':'<span style="color:#ffa726">⏳ Complete os pré-requisitos.</span>'}
+    </div></div>`;
+  }
+  lista.forEach((c,i)=>{
+    const at=i===G.ci,ps=i<G.ci,ft=i>G.ci;
+    const cls=at?'at':ps?'ps2':'ft',pc=at?'pca':ps?'pcp':'pcf',ic=ps?'✅':at?'⭐':'🔒';
+    let req='';
+    if(c.xp)req+=`XP: ${G.xp}/${c.xp}`;
+    if(c.anos)req+=(req?' · ':'')+`${c.anos} anos`;
+    if(c.oab)req+=(req?' · ':'')+(G.oab?'✅ OAB':'⚠️ OAB obrigatória');
+    cp.innerHTML+=`<div class="pst ${cls}">
+      <div class="pcir ${pc}">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:.88rem;color:${at?'var(--d)':'var(--cr)'}">${c.label}</div>
+        <div style="font-size:.71rem;color:var(--sl);margin-top:.14rem">${c.desc}</div>
+        ${c.id==='_oab'?`<div style="font-size:.69rem;color:#ffa726;margin-top:.18rem">📋 Prova obrigatória — acesse Habilidades</div>`:`<div style="font-size:.69rem;color:var(--sl);margin-top:.18rem">${req}</div>`}
+        ${at?'<div style="font-size:.69rem;color:var(--d);margin-top:.14rem">← Você está aqui</div>':''}
+      </div>
+      <span style="font-size:1rem">${ic}</span>
+    </div>`;
+  });
+  const prx=prxC();
+  if(prx&&prx.id!=='_oab')cp.innerHTML+=`<button class="bp" style="max-width:260px;padding:.55rem;font-size:.82rem" onclick="prom()">Solicitar promoção → ${prx.label}</button>`;
+  if(!G.oab)cp.innerHTML+=`<button class="bp" style="max-width:260px;padding:.55rem;font-size:.82rem;background:var(--az);margin-top:.5rem" onclick="inicOAB()">📋 Realizar Prova da OAB</button>`;
+}
+
+// ── HABILIDADES ──
+function rSkills(cp){
+  cp.innerHTML=`<div class="ph"><div><div class="pt">📚 Habilidades</div><div class="ps">Estudo custa R$500 por sessão</div></div></div>`;
+  if(!G.oab){
+    cp.innerHTML+=`<div class="cd" style="background:rgba(30,64,128,.1);border-color:rgba(30,64,128,.35)">
+      <div class="ct" style="color:#90b8ff">📋 Prova da OAB</div>
+      <div style="font-size:.78rem;color:var(--sl);line-height:1.7;margin-bottom:.75rem">
+        Requer <b style="color:${G.sk.tecnica>=45?'#69e08a':'#ff8096'}">Técnica ≥ 45 (${G.sk.tecnica})</b> e <b style="color:${G.sk.pesquisa>=40?'#69e08a':'#ff8096'}">Pesquisa ≥ 40 (${G.sk.pesquisa})</b>
+      </div>
+      <button class="bp" style="width:auto;margin:0;padding:.48rem 1.1rem;font-size:.76rem" ${G.sk.tecnica<45||G.sk.pesquisa<40?'disabled':''} onclick="inicOAB()">Realizar Prova da OAB</button>
+    </div>`;
+  } else {
+    cp.innerHTML+=`<div style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);border-radius:2px;padding:.65rem;margin-bottom:.85rem;font-size:.78rem;color:#a5d6a7">✅ OAB aprovada</div>`;
+  }
+  cp.innerHTML+=`<div class="cd"><div class="ct">⚡ Treinar</div><div class="sg">
+    ${SKDEF.map(s=>`<div>
+      <div class="sl2">${s.l}<span>${G.sk[s.k]}/100</span></div>
+      <div class="sb"><div class="sf ${s.cl}" style="width:${G.sk[s.k]}%"></div></div>
+      <button onclick="trnSk('${s.k}')" style="margin-top:.32rem;font-size:.67rem;padding:.18rem .52rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">Estudar +3</button>
+    </div>`).join('')}
+  </div></div>`;
+}
+function trnSk(k){
+  if(G.dinheiro<500){toast('Saldo insuficiente.','ko');return;}
+  G.dinheiro-=500;G.sk[k]=Math.min(100,G.sk[k]+3);
+  toast(`+3 em ${SKDEF.find(s=>s.k===k)?.l}`,'ok');gainXP(4);updTb();updR();
+  rSkills(document.getElementById('cp'));
+}
+
+// ── OAB ──
+async function inicOAB(){
+  if(G.sk.tecnica<45||G.sk.pesquisa<40){toast('Habilidades insuficientes.','ko');return;}
+  document.getElementById('exh').textContent='Prova da OAB — 1ª e 2ª Fase';
+  document.getElementById('exs').textContent='5 questões · Aprovação: 60%';
+  document.getElementById('exbd').innerHTML='<div class="lr3"><div class="spin"></div> Gerando questões...</div>';
+  document.getElementById('exam').classList.remove('h');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
+Gere 5 questões difíceis de OAB sobre ${G.esp}. JSON puro sem markdown:
+[{"q":"enunciado","opts":["A) ...","B) ...","C) ...","D) ..."],"c":0,"e":"explicação com base legal"}]
+c=índice 0-3. Lei e jurisprudência brasileira reais. Nível OAB 2ª fase.`}]})});
+    const d=await res.json();
+    exSt={qs:JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim()),i:0,ac:0,tipo:'oab'};renderExQ();
+  }catch(e){
+    exSt={qs:[
+      {q:`Em ${G.esp}, o prazo geral para interposição de recurso no CPC/2015 é:`,opts:['A) 10 dias úteis','B) 15 dias úteis','C) 30 dias corridos','D) 5 dias úteis'],c:1,e:'CPC art. 1.003 §5º: 15 dias úteis.'},
+      {q:'A reserva de plenário (CF art. 97) exige para declarar inconstitucionalidade:',opts:['A) Maioria simples de qualquer turma','B) Maioria absoluta do pleno ou órgão especial','C) Unanimidade dos membros','D) Só o relator'],c:1,e:'CF art. 97 + SV 10 STF: maioria absoluta do tribunal (full bench).'},
+      {q:'O prazo prescricional geral do Código Civil é:',opts:['A) 3 anos','B) 5 anos','C) 10 anos','D) 15 anos'],c:2,e:'CC art. 205: 10 anos quando não houver prazo especial.'},
+      {q:'Tutela de urgência antecipada (CPC art. 300) requer:',opts:['A) Sempre caução','B) Probabilidade do direito e perigo de dano','C) Só após contestação','D) É irrecorrível'],c:1,e:'CPC art. 300: probabilidade do direito + perigo de dano ou risco ao resultado útil.'},
+      {q:'Súmula Vinculante possui efeito:',opts:['A) Apenas inter partes','B) Só para tribunais superiores','C) Erga omnes e vinculante ao Judiciário e Administração','D) Só para o STF'],c:2,e:'CF art. 103-A: eficácia para todo o Judiciário e Administração Pública.'},
+    ],i:0,ac:0,tipo:'oab'};renderExQ();
+  }
+}
+
+// ── CONCURSO ──
+function rConc(cp){
+  if(!CAREERS[G.career].pub){cp.innerHTML='<div class="cd">Não aplicável.</div>';return;}
+  cp.innerHTML=`<div class="ph"><div><div class="pt">📋 Concurso Público</div><div class="ps">${CAREERS[G.career].cl}</div></div></div>`;
+  if(G.cprova){
+    cp.innerHTML+=`<div class="cd" style="background:rgba(76,175,80,.1);border-color:rgba(76,175,80,.3)">
+      <div class="ct" style="color:#69e08a">✅ Aprovado(a)!</div>
+      <div style="font-size:.8rem;color:var(--sl)">Cargo: <b style="color:var(--cr)">${cargo().label}</b> · ${fmt(cargo().sal)}/mês</div>
+    </div>`;return;
+  }
+  cp.innerHTML+=`<div class="cc"><div class="cct">Pré-requisitos</div><div class="ccr">
+    ${G.oab?'✅':'❌'} OAB aprovada &nbsp;
+    ${G.anos>=3?'✅':'❌'} 3 anos de carreira (${G.anos})<br>
+    ${G.rep>=60?'✅':'❌'} Reputação ≥ 60 (${G.rep}) &nbsp;
+    ${G.ci>=5?'✅':'❌'} Advogado Sênior+ (${cargo().label})<br>
+    ${G.sk.tecnica>=70?'✅':'❌'} Técnica ≥ 70 (${G.sk.tecnica}) &nbsp;
+    ${G.sk.pesquisa>=65?'✅':'❌'} Pesquisa ≥ 65 (${G.sk.pesquisa}) &nbsp;
+    ${G.sk.oratoria>=60?'✅':'❌'} Oratória ≥ 60 (${G.sk.oratoria})
+  </div></div>`;
+  if(G.cdispon){
+    cp.innerHTML+=`<div class="cd"><div class="ct">🏛️ Concurso disponível!</div>
+      <div style="font-size:.78rem;color:var(--sl);margin-bottom:.75rem;line-height:1.75">
+        <b>1ª Fase:</b> Questões objetivas · <b>2ª Fase:</b> Dissertativa + peças · <b>3ª Fase:</b> Oral perante banca<br>
+        <b style="color:#ff8096">Prova muito difícil.</b> Habilidades altas aumentam suas chances.
+      </div>
+      <button class="bp" style="width:auto;margin:0;padding:.52rem 1.1rem;font-size:.78rem" onclick="inicConc()">Realizar concurso</button>
+    </div>`;
+  }
+}
+async function inicConc(){
+  document.getElementById('exh').textContent=CAREERS[G.career].cl;
+  document.getElementById('exs').textContent='6 questões difíceis · Aprovação: 60%';
+  document.getElementById('exbd').innerHTML='<div class="lr3"><div class="spin"></div> Gerando prova...</div>';
+  document.getElementById('exam').classList.remove('h');
+  const cl={juiz:'Magistratura',promotor:'Ministério Público',defensor:'Defensoria Pública'}[G.career];
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
+6 questões MUITO DIFÍCEIS de concurso para ${cl}, área ${G.esp}. Estilo CESPE/FCC.
+JSON puro: [{"q":"enunciado","opts":["A)...","B)...","C)...","D)...","E)..."],"c":0,"e":"explicação doutrinária"}]
+c=índice 0-4. Súmulas STF/STJ, doutrina, legislação atualizada. Nível aprovados reais.`}]})});
+    const d=await res.json();
+    exSt={qs:JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim()),i:0,ac:0,tipo:'concurso'};renderExQ();
+  }catch(e){
+    exSt={qs:[
+      {q:`Para ${cl}: sobre garantias constitucionais, é CORRETO:`,opts:['A) Vitaliciedade na posse','B) Inamovibilidade relativa, cedendo ao interesse público','C) Irredutibilidade sem tributação','D) Autonomia sem controle','E) Estágio de 1 ano'],c:1,e:'CF art. 95: inamovibilidade é relativa (art. 93 VIII). Vitaliciedade: 2 anos.'},
+      {q:'Sobre controle de constitucionalidade:',opts:['A) Qualquer pessoa propõe ADI','B) Declaração de inconstitucionalidade exige maioria absoluta (reserva de plenário)','C) ADI tem efeito sempre ex nunc','D) Controle difuso produz efeitos erga omnes','E) ADPF e ADI têm mesma legitimidade'],c:1,e:'CF art. 97 + CPC 948. ADI: efeitos ex tunc; erga omnes. Difuso: inter partes.'},
+      {q:'Prescrição intercorrente na execução civil (CPC art. 921):',opts:['A) Não existe','B) Só no penal','C) Após 1 ano suspenso + 5 anos sem localizar devedor','D) Exige intimação prévia','E) Fazenda é imune'],c:2,e:'CPC art. 921 §4º: 1 ano de suspensão + 5 anos = prescrição intercorrente. STJ Tema 566.'},
+      {q:'Após Lei 14.230/2021, improbidade administrativa exige:',opts:['A) Culpa grave é suficiente','B) Dolo específico','C) PJ não pode ser ré','D) Transação penal admissível','E) MP perdeu legitimidade'],c:1,e:'Lei 14.230/2021 art. 1º §1º: dolo específico. MP legitimidade exclusiva (§14).'},
+      {q:'Controle judicial do ato administrativo discricionário:',opts:['A) Judiciário substitui o mérito','B) Só controla legalidade formal','C) Abrange legalidade + proporcionalidade, sem substituir o mérito','D) MP não pode questionar','E) Discricionariedade é plena'],c:2,e:'Doutrina majoritária + STF RE 632.853: controle abrange proporcionalidade, mas não substitui o mérito.'},
+      {q:'Diferença entre prescrição e decadência no CC/2002:',opts:['A) Prescrição extingue o direito','B) Ambas são de ofício','C) Decadência extingue o direito; prescrição extingue a pretensão','D) Prescrição não pode ser de ofício','E) Decadência convencional é proibida'],c:2,e:'CC art. 189: prescrição extingue a pretensão. Art. 207: decadência extingue o direito. Art. 210: decadência legal de ofício.'},
+    ],i:0,ac:0,tipo:'concurso'};renderExQ();
+  }
+}
+
+// ── EXAM ENGINE ──
+function renderExQ(){
+  const{qs,i}=exSt,q=qs[i];
+  document.getElementById('exbd').innerHTML=`
+    <div style="font-size:.7rem;color:var(--sl);margin-bottom:.75rem">Questão ${i+1} de ${qs.length}</div>
+    <div class="exq">${q.q}</div>
+    <div class="exop">${q.opts.map((o,j)=>`<button class="exo2" onclick="respEx(${j})">${o}</button>`).join('')}</div>`;
+}
+function respEx(idx){
+  const{qs,i}=exSt,q=qs[i];
+  document.querySelectorAll('.exo2').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.exo2')[q.c].classList.add('ok');
+  if(idx!==q.c)document.querySelectorAll('.exo2')[idx].classList.add('ko');
+  else exSt.ac++;
+  const exp=document.createElement('div');
+  exp.style.cssText='margin-top:.55rem;font-size:.76rem;color:var(--sl);padding:.58rem;background:rgba(255,255,255,.04);border-radius:2px;line-height:1.6';
+  exp.innerHTML=`📖 ${q.e}`;document.getElementById('exbd').appendChild(exp);
+  const btn=document.createElement('button');btn.className='bp';btn.style.cssText='margin-top:.75rem;padding:.52rem';
+  const last=i===qs.length-1;btn.textContent=last?'Ver resultado →':'Próxima →';
+  btn.onclick=last?finEx:()=>{exSt.i++;renderExQ();};
+  document.getElementById('exbd').appendChild(btn);
+}
+function finEx(){
+  const{ac,qs,tipo}=exSt;const pct=Math.round(ac/qs.length*100);const ap=pct>=60;
+  document.getElementById('exbd').innerHTML=`
+    <div style="text-align:center;padding:1rem">
+      <div style="font-size:2.8rem;margin-bottom:.45rem">${ap?'🏆':'😔'}</div>
+      <div class="exsc" style="color:${ap?'#69e08a':'#ff8096'}">${pct}%</div>
+      <div style="font-size:.95rem;font-weight:600;margin-bottom:.38rem;color:${ap?'#69e08a':'#ff8096'}">${ap?'APROVADO(A)':'REPROVADO(A)'}</div>
+      <div style="font-size:.8rem;color:var(--sl);margin-bottom:.85rem">${ac} de ${qs.length} corretas</div>
+      ${ap&&tipo==='oab'?`<div style="font-size:.8rem;color:#a5d6a7;margin-bottom:.85rem">OAB aprovada! Cargo: <b>Advogado(a) Júnior</b></div>`:''}
+      ${ap&&tipo==='concurso'?`<div style="font-size:.8rem;color:#a5d6a7;margin-bottom:.85rem">Aprovado(a) no concurso! Cargo: <b>${(CARGOS_PUB[G.career]||CARGOS_PUB.juiz)[0].label}</b></div>`:''}
+      ${!ap?`<div style="font-size:.8rem;color:#ef9a9a;margin-bottom:.85rem">Estude mais. Evolua Técnica e Pesquisa.</div>`:''}
+      <button class="bp" style="padding:.58rem 1.4rem;width:auto" onclick="fchEx(${ap},'${tipo}')">Continuar →</button>
+    </div>`;
+}
+function fchEx(ap,tipo){
+  document.getElementById('exam').classList.add('h');
+  if(!ap)return;
+  if(tipo==='oab'){
+    G.oab=true;G.ci=3;calcR();gainXP(80);G.rep=Math.min(100,G.rep+20);
+    toast('🏆 OAB aprovada! Você agora pode advogar!','ok');
+    noticia('OAB aprovada! Cargo: Advogado(a) Júnior.','positivo');chkConc();
+  } else if(tipo==='concurso'){
+    G.cprova=true;G.ci=0;calcR();gainXP(150);G.rep=Math.min(100,G.rep+30);
+    toast(`🏛️ Aprovado(a) no ${CAREERS[G.career].cl}!`,'ok');
+    noticia(`Concurso aprovado! Cargo: ${cargo().label}`,'positivo');
+  }
+  updTb();updR();sw('progressao');
+}
+function chkConc(){
+  if(!CAREERS[G.career].pub||G.cprova)return;
+  const ok=G.oab&&G.anos>=3&&G.rep>=60&&G.ci>=5&&G.sk.tecnica>=70&&G.sk.pesquisa>=65&&G.sk.oratoria>=60;
+  if(ok&&!G.cdispon){G.cdispon=true;toast('🎉 Pré-requisitos do concurso atingidos!','ok');noticia(`Concurso ${CAREERS[G.career].cl} disponível!`,'positivo');}
+}
+
+// ── EQUIPE ──
+function rEq(cp){
+  const ok=G.ci>=3;
+  cp.innerHTML=`<div class="ph">
+    <div><div class="pt">👔 Equipe</div><div class="ps">${G.estagiarios.length} membro(s) · ${fmt(G.estagiarios.length*1200)}/mês</div></div>
+    <button class="bp" style="width:auto;margin:0;padding:.45rem .85rem;font-size:.73rem" onclick="contrEst()" ${!ok?'disabled':''}>+ Contratar</button>
+  </div>`;
+  if(!ok)cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:1.5rem">🔒 Disponível a partir de Advogado Júnior.</div>`;
+  if(!G.estagiarios.length)cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:1.5rem">Nenhum membro ainda.</div>`;
+  G.estagiarios.forEach((e,i)=>{
+    cp.innerHTML+=`<div class="ec"><div class="ea">${e.av}</div>
+      <div class="ei"><div class="en">${e.nome}</div><div class="ear">${e.area} · ${e.fac}</div>
+        <div class="ep">⚡ ${e.d}% · ${e.s} sem.</div>
+        <div style="margin-top:.22rem;height:4px;background:rgba(255,255,255,.1);border-radius:2px;width:130px;overflow:hidden"><div style="height:100%;width:${e.d}%;background:var(--d)"></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.32rem">
+        <button onclick="delEst(${i})" style="font-size:.68rem;padding:.26rem .52rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">Delegar</button>
+        <button onclick="demEst(${i})" style="font-size:.68rem;padding:.26rem .52rem;background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);color:#ff8096;border-radius:2px;cursor:pointer">Dispensar</button>
+      </div>
+    </div>`;
+  });
+}
+function contrEst(){
+  if(G.estagiarios.length>=6){toast('Máximo 6.','');return;}
+  const areas=['Trabalhista','Civil','Tributário','Empresarial','Criminal','Previdenciário'];
+  G.estagiarios.push({nome:ENOMES[rnd(ENOMES.length)],area:areas[rnd(areas.length)],fac:FACS[rnd(FACS.length)],av:['👨‍💼','👩‍💼','🧑‍💼'][rnd(3)],d:55+rnd(35),s:0});
+  toast('Novo membro contratado!','ok');gainXP(8);updR();rEq(document.getElementById('cp'));
+}
+function delEst(i){
+  const e=G.estagiarios[i],p=G.procs[rnd(G.procs.length)];
+  if(!p){toast('Nenhum caso.','');return;}
+  if(Math.random()<e.d/100){gainXP(10);G.sk.gestao=Math.min(100,G.sk.gestao+1);toast(`${e.nome} avançou o caso!`,'ok');const fs=['Petição Inicial','Contestação','Instrução','Audiência'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
+  else toast(`${e.nome} encontrou dificuldades.`,'ko');
+}
+function demEst(i){const e=G.estagiarios[i];G.estagiarios.splice(i,1);toast(`${e.nome} dispensado(a).`,'');rEq(document.getElementById('cp'));}
+
+// ── CURSOS ──
+function rCursos(cp){
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🎓 Cursos & Pós</div><div class="ps">Saldo: ${fmt(G.dinheiro)}</div></div></div>`;
+  const oIdx=id=>CARGOS.findIndex(c=>c.id===id);
+  CURSOS.forEach(c=>{
+    const feito=G.cursos.includes(c.id),bloq=G.ci<oIdx(c.creq),skL=SKDEF.find(s=>s.k===c.sk)?.l||c.sk;
+    cp.innerHTML+=`<div class="cd" style="opacity:${bloq?.5:1}">
+      <div style="display:flex;align-items:flex-start;gap:.85rem">
+        <div style="font-size:1.75rem">${c.i}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.9rem;color:var(--cr);margin-bottom:.16rem">${c.n}</div>
+          <div style="font-size:.71rem;color:var(--sl)">${c.sem} semanas · +${c.b} ${skL}</div>
+          <div style="font-size:.78rem;color:#69e08a;margin-top:.22rem">${fmt(c.c)}</div>
+        </div>
+        <div>${feito?`<span class="owl">✓ Concluído</span>`:bloq?`<span style="font-size:.7rem;color:var(--sl)">🔒 Req: ${c.creq}</span>`:G.dinheiro<c.c?`<span style="font-size:.7rem;color:#ff8096">Sem saldo</span>`:`<button class="bby" onclick="fazerC('${c.id}')">Matricular</button>`}</div>
+      </div>
+    </div>`;
+  });
+}
+function fazerC(id){
+  const c=CURSOS.find(x=>x.id===id);if(!c||G.dinheiro<c.c||G.cursos.includes(c.id))return;
+  G.dinheiro-=c.c;G.sk[c.sk]=Math.min(100,G.sk[c.sk]+c.b);G.cursos.push(c.id);gainXP(40);G.rep=Math.min(100,G.rep+8);
+  toast(`${c.i} ${c.n} concluído!`,'ok');updTb();updR();rCursos(document.getElementById('cp'));
+}
+
+// ── PATRIMÔNIO ──
+function rPat(cp){
+  const d=calcD();
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🏠 Patrimônio</div><div class="ps">Bens e finanças</div></div></div>
+  <div class="ptg">
+    <div class="pti"><div class="pii">💰</div><div class="pil">Saldo</div><div class="piv">${fmt(G.dinheiro)}</div></div>
+    <div class="pti"><div class="pii">📈</div><div class="pil">Renda/mês</div><div class="piv">${fmt(G.renda)}</div></div>
+    <div class="pti"><div class="pii">💸</div><div class="pil">Despesas/mês</div><div class="piv" style="color:#ff8096">${fmt(d)}</div></div>
+    <div class="pti"><div class="pii">🏦</div><div class="pil">Pat. total</div><div class="piv">${fmt(G.dinheiro+G.compras.reduce((a,c)=>a+c.v,0))}</div></div>
+  </div>`;
+  const cats={moradia:'🏠 Moradia',transporte:'🚗 Transporte',escritorio:'💼 Escritório'};
+  Object.entries(PAT).forEach(([cat,its])=>{
+    const at=G.pat[cat];
+    cp.innerHTML+=`<div class="cd"><div class="ct">${cats[cat]}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.45rem">
+        ${its.map(it=>`<div style="background:rgba(255,255,255,${it.id===at?.1:.03});border:1px solid rgba(201,168,76,${it.id===at?.6:.2});padding:.62rem;border-radius:2px;text-align:center">
+          <div style="font-size:1.35rem">${it.i}</div>
+          <div style="font-size:.74rem;font-weight:600;color:var(--cr);margin:.18rem 0">${it.l}</div>
+          ${it.v>0?`<div style="font-size:.66rem;color:#69e08a">${fmt(it.v)}</div>`:''}
+          <div style="font-size:.64rem;color:var(--sl)">${fmt(it.cm)}/mês</div>
+          ${it.id===at?`<div style="font-size:.66rem;color:var(--d);margin-top:.22rem">✓ Atual</div>`:
+            `<button onclick="comprPat('${cat}','${it.id}')" style="margin-top:.28rem;font-size:.66rem;padding:.16rem .48rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">${it.v>0?'Comprar':'Mudar'}</button>`}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  if(G.compras.length)cp.innerHTML+=`<div class="cd"><div class="ct">🛒 Bens</div><div class="ptg">${G.compras.map(c=>`<div class="pti"><div class="pii">${c.i}</div><div class="pil">${c.n}</div><div class="piv">${fmt(c.v)}</div></div>`).join('')}</div></div>`;
+}
+function comprPat(cat,id){
+  const it=PAT[cat].find(i=>i.id===id);if(!it)return;
+  if(it.v>0&&G.dinheiro<it.v){toast(`Saldo insuficiente. Necessário: ${fmt(it.v)}`,'ko');return;}
+  if(it.v>0)G.dinheiro-=it.v;G.pat[cat]=id;gainXP(12);
+  toast(`${it.i} ${it.l} atualizado!`,'ok');updTb();updR();rPat(document.getElementById('cp'));
+}
+
+// ── LOJA ──
+function rLoja(cp){
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🛒 Upgrades</div><div class="ps">Saldo: ${fmt(G.dinheiro)}</div></div></div>
+  <div class="shg">${SHOP.map(it=>{const ow=G.compras.some(c=>c.id===it.id);return`
+    <div class="shi"><div class="si">${it.i}</div><div class="sn">${it.n}</div><div class="sd">${it.d}</div><div class="sp">${fmt(it.p)}</div>
+      ${ow?`<span class="owl">✓ Adquirido</span>`:`<button class="bby" ${G.dinheiro<it.p?'disabled':''} onclick="comprIt('${it.id}')">Comprar</button>`}
+    </div>`}).join('')}</div>`;
+}
+function comprIt(id){
+  const it=SHOP.find(i=>i.id===id);if(!it||G.dinheiro<it.p)return;
+  G.dinheiro-=it.p;it.e();G.compras.push({id:it.id,i:it.i,n:it.n,v:Math.floor(it.p*.7)});
+  toast(`${it.i} ${it.n} adquirido!`,'ok');gainXP(14);updTb();updR();rLoja(document.getElementById('cp'));
+}
+
+// ── NOTÍCIAS ──
+function rNews(cp){
+  G.noticias.forEach(n=>n.lida=true);document.getElementById('bnews').textContent='';
+  cp.innerHTML=`<div class="ph"><div><div class="pt">📰 Feed Jurídico</div><div class="ps">Eventos e jurisprudência</div></div></div>`;
+  if(!G.noticias.length){cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:2rem">Avance semanas para gerar eventos.</div>`;return;}
+  [...G.noticias].reverse().forEach(n=>{cp.innerHTML+=`<div class="ni2 ${n.tipo||''}"><div class="nd">${n.data}</div><div class="nt">${n.texto}</div></div>`;});
+}
+
+// ══ AVANÇAR SEMANA ══
+async function advW(){
+  const btn=document.getElementById('ba');btn.disabled=true;btn.textContent='⏳...';
+  G.sg++;G.sem++;
+  if(G.sem>4){
+    G.sem=1;G.mes++;if(G.mes>11){G.mes=0;G.ano++;G.anos++;}
+    calcR();const d=calcD();G.dinheiro+=G.renda-d;
+    noticia(`💰 Fechamento ${MN[G.mes>0?G.mes-1:11]}/${G.ano}: +${fmt(G.renda)} renda · -${fmt(d)} despesas`,G.renda-d>=0?'positivo':'urgente');
+    G.estagiarios.forEach(e=>{e.s++;if(Math.random()<.3)e.d=Math.min(100,e.d+2);});chkConc();
+  }
+  G.procs.forEach(p=>{if(p.audsem===G.sg&&!G.audpend.includes(p.id)){noticia(`🔴 Audiência HOJE: ${p.tipo} — ${p.autor} vs ${p.reu}`,'urgente');G.audpend.push(p.id);}});
+  G.audpend=G.audpend.filter(id=>G.procs.some(p=>p.id===id));
+  if(Math.random()<.52)await evSem();
+  if(Math.random()<.18&&G.procs.length<9){G.procs.push(mkProc());noticia(`📁 Novo caso: ${G.procs[G.procs.length-1].tipo}`,'positivo');}
+  updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar semana';
+  const a=document.querySelector('.ni.on');if(a)sw(a.dataset.p);
+}
+async function evSem(){
+  const ts=['nova_lei','decisao_stj','oportunidade','risco','mercado'];const tp=ts[rnd(ts.length)];
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:`
+Jogo jurídico. Evento semanal para ${G.nome} (${cargo().label} · ${G.esp}). Tipo: ${tp} · ${MN[G.mes]}/${G.ano}
+JSON puro: {"t":"título","d":"1-2 frases sobre ${G.esp}","tn":"urgente|positivo|neutro","ef":"dinheiro|reputacao|habilidade|nenhum","ve":numero,"se":"peticao|oratoria|pesquisa|negociacao|tecnica|gestao|networking|pressao|null"}
+Mencione legislação/jurisprudência brasileira.`}]})});
+    const data=await res.json();const ev=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    noticia(`<b>${ev.t}</b>: ${ev.d}`,ev.tn);
+    if(ev.ef==='dinheiro'&&ev.ve){G.dinheiro+=ev.ve;if(ev.ve>0)toast(`💰 ${ev.t}: +${fmt(ev.ve)}`,'ok');}
+    else if(ev.ef==='reputacao'&&ev.ve)G.rep=Math.max(0,Math.min(100,G.rep+ev.ve));
+    else if(ev.ef==='habilidade'&&ev.se&&ev.se!=='null'&&G.sk[ev.se]!==undefined)G.sk[ev.se]=Math.min(100,G.sk[ev.se]+(ev.ve||3));
+    gainXP(4);
+  }catch(e){
+    const fb=[{t:`STJ — nova tese em ${G.esp}`,n:'positivo'},{t:'Reforma tributária em debate',n:'neutro'},{t:'CARF suspende sessões',n:'urgente'},{t:'Novo cliente indicado',n:'positivo'}];
+    const f=fb[rnd(fb.length)];noticia(f.t,f.n);if(f.n==='positivo'){gainXP(4);G.rep=Math.min(100,G.rep+2);}
+  }
+}
+async function novoCasoIA(){
+  const btn=document.querySelector('[onclick="novoCasoIA()"]');if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:`
+Jogo jurídico. 1 caso de ${G.esp} para ${G.nome} (${cargo().label}).
+JSON puro: {"tipo":"ação de ${G.esp}","autor":"nome","reu":"réu","tribunal":"tribunal para ${G.esp}","valor":numero,"hon":numero,"urgente":false}
+Juridicamente realista e pertinente a ${G.esp}.`}]})});
+    const d=await res.json();const c=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    const esp=G.esp;const casos=CASOS[esp]||CASOS.civil;const mod=casos[rnd(casos.length)];
+    const trbs=TRIBUNAIS[esp]||TRIBUNAIS.civil;
+    const num=`${String(pctr++).padStart(7,'0')}-${String(rnd(99)).padStart(2,'0')}.2024.8.19.0001`;
+    G.procs.push({id:Math.random().toString(36).substr(2,9),numero:num,tipo:c.tipo,pecas:mod.pecas,sk:mod.sk,dica:mod.dica,autor:c.autor,reu:c.reu,tribunal:c.tribunal||trbs[rnd(trbs.length)],status:'andamento',urgente:c.urgente||false,fase:'Petição Inicial',peca:null,valor:c.valor||80000,hon:c.hon||15000,criado:`S${G.sg}`,audsem:Math.random()<.3?G.sg+rnd(5)+1:null});
+    toast(`📁 Novo caso: ${c.tipo}`,'ok');noticia(`Novo caso: ${c.tipo} — ${c.autor} vs ${c.reu}`,'positivo');gainXP(5);
+  }catch(e){G.procs.push(mkProc());toast('📁 Novo caso adicionado!','ok');}
+  updTb();updR();if(btn){btn.disabled=false;btn.textContent='+ Novo caso';}
+  rProcs(document.getElementById('cp'));
+}
+
+// ══ HELPERS ══
+function gainXP(n){G.xp+=n;updR();}
+function gainSk(k,n){if(G.sk[k]!==undefined)G.sk[k]=Math.min(100,G.sk[k]+n);}
+function noticia(txt,tipo='neutro'){
+  G.noticias.push({texto:txt,tipo,lida:false,data:`${MN[G.mes]}/${G.ano}·S${G.sg}`});
+  if(G.noticias.length>60)G.noticias.shift();
+  const nn=G.noticias.filter(n=>!n.lida).length;document.getElementById('bnews').textContent=nn||'';
+}
+function toast(msg,tipo=''){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='on '+tipo;
+  clearTimeout(t._t);t._t=setTimeout(()=>{t.className=''},3800);
+}
+function cM(id){document.getElementById(id).classList.add('h');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('mo'))e.target.classList.add('h');});
+</script>
+</body>
+</html>
