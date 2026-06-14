@@ -5,6 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Advocatus — Simulador Jurídico</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Courier+Prime&display=swap" rel="stylesheet">
+<!-- Firebase SDKs -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import{getFirestore,doc,setDoc,getDoc}from'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// ══ CREDENCIAIS FIREBASE ══
+const FB_CONFIG={
+  apiKey:"AIzaSyCiGvGA2OUYSGp2BHM-K05tM39hPk40trY",
+  authDomain:"advocatus-simultor.firebaseapp.com",
+  projectId:"advocatus-simultor",
+  storageBucket:"advocatus-simultor.firebasestorage.app",
+  messagingSenderId:"527755299061",
+  appId:"1:527755299061:web:cc75b6f9912d13a44a5dbc",
+  measurementId:"G-MTKD441F1V"
+};
+// ══════════════════════════════
+
+const app=initializeApp(FB_CONFIG);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const provider=new GoogleAuthProvider();
+let currentUID=null;
+
+window._fbLogin=async()=>{
+  try{
+    const btn=document.getElementById('btn-google');
+    btn.disabled=true;btn.textContent='Conectando...';
+    await signInWithPopup(auth,provider);
+  }catch(e){
+    const btn=document.getElementById('btn-google');
+    if(btn){btn.disabled=false;btn.textContent='Entrar com Google';}
+    if(e.code!=='auth/popup-closed-by-user')
+      document.getElementById('login-err').textContent='Erro ao conectar. Tente novamente.';
+  }
+};
+window._fbLogout=async()=>{await signOut(auth);location.reload();};
+window._fbSave=async(gameState)=>{
+  if(!currentUID)return;
+  try{
+    await setDoc(doc(db,'saves',currentUID),{save:JSON.parse(JSON.stringify(gameState)),ts:Date.now()});
+  }catch(e){console.warn('Save error:',e);}
+};
+window._fbLoad=async()=>{
+  if(!currentUID)return null;
+  try{
+    const snap=await getDoc(doc(db,'saves',currentUID));
+    return snap.exists()?snap.data().save:null;
+  }catch(e){console.warn('Load error:',e);return null;}
+};
+
+onAuthStateChanged(auth,async user=>{
+  const ls=document.getElementById('login-screen');
+  const intro=document.getElementById('intro');
+  const tu=document.getElementById('topbar-user');
+  if(user){
+    currentUID=user.uid;
+    if(ls)ls.style.display='none';
+    const un=document.getElementById('un');if(un)un.textContent=user.displayName||user.email;
+    const av=document.getElementById('uav');
+    if(av){av.src=user.photoURL||'';av.style.display=user.photoURL?'block':'none';}
+    if(tu)tu.style.display='flex';
+    window._userLoggedIn=true;
+    const saved=await window._fbLoad();
+    if(saved&&saved.nome){
+      window._loadSave(saved);
+    } else {
+      if(intro)intro.style.display='flex';
+    }
+  } else {
+    currentUID=null;window._userLoggedIn=false;
+    if(ls)ls.style.display='flex';
+    if(intro)intro.style.display='none';
+    if(tu)tu.style.display='none';
+  }
+});
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -194,11 +271,53 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
 #toast.ok{border-color:#4caf5088}#toast.ko{border-color:#e5393588}
 @media(max-width:900px){.gb{grid-template-columns:180px 1fr}.rp{display:none}}
 @media(max-width:600px){.gb{grid-template-columns:1fr}.sn{display:none}}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;gap:1.5rem;padding:2rem}
+.login-box{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.35);border-radius:2px;padding:2rem;max-width:380px;width:100%;text-align:center}
+.login-title{font-family:"Playfair Display",serif;font-size:2rem;color:var(--d);margin-bottom:.3rem}
+.login-sub{font-size:.78rem;color:var(--sl);margin-bottom:1.5rem;letter-spacing:.1em;text-transform:uppercase}
+#btn-google{display:flex;align-items:center;justify-content:center;gap:.75rem;width:100%;background:#fff;color:#3c4043;border:none;padding:.75rem 1rem;border-radius:4px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:"Inter",sans-serif}
+#btn-google:hover{background:#f8f8f8;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#btn-google:disabled{opacity:.6;cursor:not-allowed}
+#btn-google svg{width:20px;height:20px;flex-shrink:0}
+#login-err{font-size:.75rem;color:#ff8096;margin-top:.75rem;min-height:1rem}
+.login-disclaimer{font-size:.68rem;color:var(--sl);margin-top:.75rem;line-height:1.6}
+/* ── TOPBAR USER ── */
+#topbar-user{display:none;align-items:center;gap:.6rem;margin-left:.5rem}
+#uav{width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid rgba(201,168,76,.4)}
+#un{font-size:.72rem;color:var(--sl);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#btn-logout{background:transparent;border:1px solid rgba(201,168,76,.3);color:var(--sl);padding:.18rem .5rem;border-radius:2px;font-size:.65rem;cursor:pointer;transition:all .2s}
+#btn-logout:hover{border-color:var(--d);color:var(--d)}
+/* Save indicator */
+#save-indicator{font-size:.65rem;color:var(--sl);transition:color .3s}
+#save-indicator.saving{color:var(--d)}
+#save-indicator.saved{color:#69e08a}
+
 </style>
 </head>
 <body>
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-title">Advocatus</div>
+    <div class="login-sub">Simulador Jurídico Brasileiro</div>
+    <button id="btn-google" onclick="window._fbLogin()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <div id="login-err"></div>
+    <div class="login-disclaimer">Seu progresso é salvo automaticamente na nuvem.<br>Retome de onde parou a qualquer momento.</div>
+  </div>
+</div>
+
 <!-- INTRO -->
-<div id="intro">
+<div id="intro" style="display:none">
   <div class="it">Advocatus</div>
   <div class="is">Simulador Jurídico Brasileiro</div>
   <div class="isep"></div>
@@ -247,7 +366,9 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
       <div class="sp">❤️ <span class="v" id="tbv">100</span></div>
       <div class="td" id="tbt">Jan 2024 · Sem 1</div>
       <button id="ba" onclick="advW()">▶ Avançar semana</button>
+      <span id="save-indicator">☁</span>
     </div>
+    <div id="topbar-user"><img id="uav" src="" alt=""/><span id="un"></span><button id="btn-logout" onclick="window._fbLogout()">Sair</button></div>
   </div>
   <div class="gb">
     <nav class="sn">
@@ -544,6 +665,7 @@ function startGame(){
   document.getElementById('gs').classList.add('on');
   updTb();updR();sw('processos');
   toast(`Bem-vindo(a), ${nome}! Cargo inicial: ${cargo().label}`,'ok');
+  autoSave();
 }
 
 // ══ CARGOS ══
@@ -572,7 +694,7 @@ function prom(){
   G.ci++;calcR();
   toast(`🎉 Promovido(a) para ${cargo().label}!`,'ok');
   noticia(`Promoção: você agora é ${cargo().label}`,'positivo');
-  chkConc();updTb();updR();sw('progressao');
+  chkConc();updTb();updR();sw('progressao');autoSave();
 }
 
 // ══ PROCESSOS ══
@@ -713,6 +835,7 @@ function escolherPeca(pid,pecId){
   }
   gainXP(xp);G.rep=Math.max(0,Math.min(100,G.rep+rd));gainSk(p.sk,pec.c===true?3:1);
   document.querySelectorAll('.pb2').forEach(b=>b.disabled=true);
+  autoSave();
   document.getElementById('pmc').innerHTML+=`
     <div class="rb ${cl}" style="margin-top:.8rem">
       <div style="font-weight:700;margin-bottom:.38rem">${res}</div>${html}
@@ -877,7 +1000,7 @@ function acaoP(id,acao){
   const bd=document.createElement('div');bd.style.cssText='display:flex;gap:.42rem;margin-top:.85rem';
   bd.innerHTML=`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
     ${!pRes?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${p.id}'))">Nova ação</button>`:''}`;
-  log.parentElement.appendChild(bd);updTb();updR();
+  log.parentElement.appendChild(bd);updTb();updR();autoSave();
 }
 function finP(id){const i=G.procs.findIndex(x=>x.id===id);if(i<0)return;G.prfin.push(G.procs[i]);G.procs.splice(i,1);}
 
@@ -1136,7 +1259,7 @@ function fchEx(ap,tipo){
     toast(`🏛️ Aprovado(a) no ${CAREERS[G.career].cl}!`,'ok');
     noticia(`Concurso aprovado! Cargo: ${cargo().label}`,'positivo');
   }
-  updTb();updR();sw('progressao');
+  updTb();updR();sw('progressao');autoSave();
 }
 function chkConc(){
   if(!CAREERS[G.career].pub||G.cprova)return;
@@ -1278,6 +1401,7 @@ async function advW(){
   if(Math.random()<.18&&G.procs.length<9){G.procs.push(mkProc());noticia(`📁 Novo caso: ${G.procs[G.procs.length-1].tipo}`,'positivo');}
   updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar semana';
   const a=document.querySelector('.ni.on');if(a)sw(a.dataset.p);
+  autoSave();
 }
 // ══ EVENTO SEMANAL DETERMINÍSTICO ══
 const EVENTOS_ESP={
@@ -1380,6 +1504,41 @@ function toast(msg,tipo=''){
   const t=document.getElementById('toast');t.textContent=msg;t.className='on '+tipo;
   clearTimeout(t._t);t._t=setTimeout(()=>{t.className=''},3800);
 }
+
+// ══ FIREBASE SAVE / LOAD ══
+window._loadSave=function(saved){
+  // Carregar estado salvo
+  G=saved;
+  // Garantir campos que podem ter sido adicionados depois do save
+  if(!G.estagiarios)G.estagiarios=[];
+  if(!G.compras)G.compras=[];
+  if(!G.cursos)G.cursos=[];
+  if(!G.noticias)G.noticias=[];
+  if(!G.audpend)G.audpend=[];
+  if(!G.prfin)G.prfin=[];
+  if(!G.procs)G.procs=[];
+  if(G.procs.length===0)G.procs.push(mkProc());
+  const pub=CAREERS[G.career]&&CAREERS[G.career].pub;
+  if(pub)document.getElementById('nc').style.display='';
+  calcR();
+  document.getElementById('intro').style.display='none';
+  document.getElementById('gs').classList.add('on');
+  updTb();updR();sw('processos');
+  toast('💾 Progresso carregado! Bem-vindo(a) de volta, '+G.nome+'!','ok');
+};
+
+let _saveTimer=null;
+function autoSave(){
+  if(!window._userLoggedIn||!G||!G.nome)return;
+  const ind=document.getElementById('save-indicator');
+  if(ind){ind.textContent='☁ salvando…';ind.className='saving';}
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    await window._fbSave(G);
+    if(ind){ind.textContent='✓ salvo';ind.className='saved';setTimeout(()=>{ind.textContent='☁';ind.className='';},2500);}
+  },1500); // debounce 1.5s
+}
+
 function cM(id){document.getElementById(id).classList.add('h');}
 document.addEventListener('click',e=>{if(e.target.classList.contains('mo'))e.target.classList.add('h');});
 </script>
