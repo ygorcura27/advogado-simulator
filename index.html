@@ -365,7 +365,7 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
       <div class="sp">⭐ <span class="v" id="tbr2">0</span></div>
       <div class="sp">❤️ <span class="v" id="tbv">100</span></div>
       <div class="td" id="tbt">Jan 2024 · Sem 1</div>
-      <button id="ba" onclick="advW()">▶ Avançar semana</button>
+      <button id="ba" onclick="advW()">▶ Avançar mês</button>
       <span id="save-indicator">☁</span>
     </div>
     <div id="topbar-user"><img id="uav" src="" alt=""/><span id="un"></span><button id="btn-logout" onclick="window._fbLogout()">Sair</button></div>
@@ -442,16 +442,16 @@ const CAREERS={
   defensor:{label:'Defensoria Pública',pub:true,cl:'Concurso da DPE/DPU',info:'Percurso: Estagiário → OAB → Advogado Sênior → 3 anos → Concurso da DPE. Foco em direitos fundamentais.'},
 };
 const CARGOS=[
-  {id:'est', label:'Estagiário',         xp:0,    sal:1500,  anos:0,  oab:false,desc:'Início da jornada. Pesquisa e tarefas básicas.'},
-  {id:'ass', label:'Assistente Jurídico', xp:120,  sal:4000,  anos:0,  oab:false,desc:'Minutas simples. Auxilia advogados seniores.'},
-  {id:'_oab',label:'→ Prova da OAB',     xp:260,  sal:4000,  anos:0,  oab:true, desc:'Aprovação obrigatória para exercer a advocacia.'},
-  {id:'jnr', label:'Advogado Júnior',    xp:260,  sal:8000,  anos:0,  oab:true, desc:'Primeiro cargo pós-OAB. Casos simples.'},
-  {id:'pln', label:'Advogado Pleno',     xp:580,  sal:14000, anos:2,  oab:true, desc:'Casos complexos com supervisão.'},
-  {id:'snr', label:'Advogado Sênior',    xp:1100, sal:22000, anos:4,  oab:true, desc:'Autonomia total. Orienta juniores.'},
-  {id:'asc', label:'Associado',          xp:1800, sal:32000, anos:6,  oab:true, desc:'Decisões estratégicas. Carteira sólida.'},
-  {id:'soc', label:'Sócio',             xp:2800, sal:55000, anos:8,  oab:true, desc:'Cotista. Participa dos lucros.'},
-  {id:'snm', label:'Sócio Nominal',      xp:4500, sal:90000, anos:12, oab:true, desc:'O escritório leva seu nome.'},
-];
+  {id:'est', label:'Estagiário',         xp:0,    sal_min:1700, sal_max:1700,  anos:0, oab:false,desc:'Início da jornada. Pesquisa e tarefas básicas.',    vmin:0,       vmax:0,        dniv:0},
+  {id:'ass', label:'Assistente Jurídico', xp:120,  sal_min:2500, sal_max:3500,  anos:0, oab:false,desc:'Minutas simples. Auxilia advogados seniores.',       vmin:0,       vmax:0,        dniv:0},
+  {id:'_oab',label:'→ Prova da OAB',     xp:260,  sal_min:2500, sal_max:3500,  anos:0, oab:true, desc:'Aprovação obrigatória para exercer a advocacia.',    vmin:0,       vmax:0,        dniv:0},
+  {id:'jnr', label:'Advogado Júnior',    xp:260,  sal_min:3500, sal_max:6650,  anos:0, oab:true, desc:'Casos simples (nível 1-10).',                        vmin:1000,    vmax:20000,    dniv:1},
+  {id:'pln', label:'Advogado Pleno',     xp:580,  sal_min:5750, sal_max:11100, anos:2, oab:true, desc:'Casos complexos com supervisão (nível 11-20).',       vmin:20000,   vmax:200000,   dniv:11},
+  {id:'snr', label:'Advogado Sênior',    xp:1100, sal_min:10600,sal_max:20000, anos:4, oab:true, desc:'Autonomia total. Casos até R$10M (nível 21-50).',     vmin:200000,  vmax:10000000, dniv:21},
+  {id:'asc', label:'Associado',          xp:1800, sal_min:20000,sal_max:35000, anos:6, oab:true, desc:'Decisões estratégicas. Carteira sólida.',             vmin:200000,  vmax:10000000, dniv:21},
+  {id:'soc', label:'Sócio',             xp:2800, sal_min:35000,sal_max:65000, anos:8, oab:true, desc:'Cotista. Participa dos lucros.',                       vmin:200000,  vmax:10000000, dniv:21},
+  {id:'snm', label:'Sócio Nominal',      xp:4500, sal_min:65000,sal_max:120000,anos:12,oab:true, desc:'O escritório leva seu nome.',                         vmin:200000,  vmax:10000000, dniv:21},
+]
 const CARGOS_PUB={
   juiz:[
     {id:'jsub',label:'Juiz Substituto',    xp:0,   sal:35000,desc:'Primeiro cargo. Sujeito a remoções.'},
@@ -678,12 +678,17 @@ function cargo(){return listaC()[G.ci]||listaC()[0]}
 function prxC(){const l=listaC();return l[G.ci+1]||null}
 function calcR(){
   const c=cargo();
-  G.renda=c.sal+(G.career==='adv_privado'?G.procs.reduce((a,p)=>a+p.hon*.04,0):0);
+  const sal_min=c.sal_min||c.sal||1500;
+  const sal_max=c.sal_max||c.sal||1500;
+  const repF=Math.min(1,(G.rep||30)/100);
+  const salBase=Math.floor(sal_min+(sal_max-sal_min)*repF);
+  G.renda=salBase+(G.career==='adv_privado'?G.procs.reduce((a,p)=>a+p.hon*.04,0):0);
 }
 function calcD(){
   let d=0;
   Object.entries(PAT).forEach(([cat,its])=>{const a=its.find(i=>i.id===G.pat[cat]);if(a)d+=a.cm;});
-  d+=G.estagiarios.length*1200;return d;
+  d+=G.estagiarios.length*6800; // estagiários: R$1.700/semana × 4 semanas = R$6.800/mês
+  return d;
 }
 function prom(){
   const lista=listaC();const prx=lista[G.ci+1];
@@ -698,17 +703,38 @@ function prom(){
 }
 
 // ══ PROCESSOS ══
+function calcValorCaso(){
+  const c=cargo();
+  const vmin=c.vmin||1000;const vmax=c.vmax||20000;
+  if(vmin===0&&vmax===0)return{valor:0,hon:0,nivel:0,dif:0};
+  const valor=Math.floor(vmin+Math.random()*(vmax-vmin));
+  // nível de dificuldade 1-50 proporcional ao valor dentro do range do cargo
+  const dniv=c.dniv||1;
+  const range=vmax-vmin||1;
+  const nivelOffset=Math.round(((valor-vmin)/range)*Math.max(9,c.id==='snr'?29:c.id==='pln'?9:9));
+  const nivel=dniv+nivelOffset;
+  const hon=Math.floor(valor*0.10); // honorários base 10% (1ª instância)
+  return{valor,hon,nivel,dif:nivel};
+}
 function mkProc(o={}){
   const esp=G.esp||'civil';const casos=CASOS[esp]||CASOS.civil;const mod=casos[rnd(casos.length)];
   const trbs=TRIBUNAIS[esp]||TRIBUNAIS.civil;
   const num=`${String(pctr++).padStart(7,'0')}-${String(rnd(99)).padStart(2,'0')}.2024.8.19.0001`;
+  const{valor,hon,nivel,dif}=calcValorCaso();
+  // chance de sucesso inicial: 50% base, modificada pelo nível de dificuldade vs habilidades
+  const skMedio=(G.sk.tecnica+G.sk.oratoria+G.sk.pesquisa)/3;
+  const chanceSucesso=Math.max(10,Math.min(95,Math.round(50+(skMedio-50)*0.5-(dif*0.8))));
   return{id:Math.random().toString(36).substr(2,9),numero:num,tipo:o.tipo||mod.tipo,
     pecas:mod.pecas,sk:mod.sk,dica:mod.dica,
     autor:o.autor||AUTORES[rnd(AUTORES.length)],reu:o.reu||REUS[rnd(REUS.length)],
     tribunal:o.tribunal||trbs[rnd(trbs.length)],status:'andamento',urgente:Math.random()<.2,
-    fase:'Petição Inicial',peca:null,valor:Math.floor(Math.random()*500000+20000),
-    hon:Math.floor(Math.random()*50000+5000),criado:`S${G.sg}`,
-    audsem:Math.random()<.3?G.sg+rnd(5)+1:null};
+    fase:'1ª Instância',instancia:1,peca:null,valor,hon,nivel,dif,
+    chanceSucesso,         // % de chance de vitória atual
+    progresso:0,           // 0-100 — progresso acumulado no caso
+    hon_total:hon,         // honorários acumulados (cresce por instância)
+    instancias_pagas:[],   // quais instâncias já pagaram honorários
+    recurso_adv:null,      // null | 'pendente' | 'interposto' | 'rejeitado'
+    criado:`M${G.mes_global||1}`};
 }
 
 // ══ TOPBAR / RIGHT ══
@@ -719,7 +745,7 @@ function updTb(){
   document.getElementById('tbd').textContent=fmt(G.dinheiro);
   document.getElementById('tbr2').textContent=G.rep;
   document.getElementById('tbv').textContent=G.vida;
-  document.getElementById('tbt').textContent=`${MN[G.mes]} ${G.ano} · Sem ${G.sem}`;
+  document.getElementById('tbt').textContent=`${MN[G.mes]} ${G.ano} · Mês ${G.mes_global||1}`;
   document.getElementById('bp2').textContent=G.procs.length;
   const pa=G.audpend.filter(id=>G.procs.some(p=>p.id===id)).length;
   const ba=document.getElementById('baud');ba.style.display=pa>0?'':'none';if(pa>0)ba.textContent=pa;
@@ -768,16 +794,26 @@ function rProcs(cp){
   </div>`;
   if(!G.procs.length){cp.innerHTML+=`<div class="cd" style="text-align:center;padding:2rem;color:var(--sl)">Nenhum processo ativo.</div>`;return;}
   G.procs.forEach(p=>{
+    const cs2=p.chanceSucesso||50;const csC2=cs2>=70?'#69e08a':cs2>=40?'#ffa726':'#ff8096';
+    const instNm=['','1ª Inst.','2ª Inst.','STJ','STF'][p.instancia||1]||'1ª Inst.';
     cp.innerHTML+=`<div class="pc ${p.urgente?'up':''}" onclick="abrirP('${p.id}')">
       <div class="pn">${p.numero}</div>
       <div class="pp">${p.autor} <span style="opacity:.5">vs</span> ${p.reu}</div>
       <div class="pto">${p.tipo} · ${p.tribunal}</div>
+      <div style="margin:.35rem 0">
+        <div style="display:flex;justify-content:space-between;font-size:.66rem;color:var(--sl);margin-bottom:.2rem">
+          <span>Progresso</span><span style="color:var(--d)">${p.progresso||0}%</span>
+        </div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${p.progresso||0}%;background:linear-gradient(90deg,var(--vc),var(--d))"></div>
+        </div>
+      </div>
       <div class="pm">
-        <span class="pt2 andamento">${p.fase}</span>
+        <span class="pt2 andamento">${instNm}</span>
         ${p.urgente?'<span class="pt2 urgente">URGENTE</span>':''}
-        ${p.peca?`<span class="pt2" style="color:#90b8ff">✓ ${p.peca.slice(0,22)}</span>`:'<span class="pt2" style="color:#ffa726">⚠ Peça pendente</span>'}
-        <span class="pt2" style="margin-left:auto;color:var(--d)">${fK(p.valor)}</span>
-        <span class="pt2" style="color:#69e08a">Hon:${fK(p.hon)}</span>
+        ${p.peca?`<span class="pt2" style="color:#90b8ff">✓ ${p.peca.slice(0,20)}</span>`:'<span class="pt2" style="color:#ffa726">⚠ Peça pendente</span>'}
+        <span class="pt2" style="margin-left:auto;color:var(--d)">Nv${p.nivel||1} · ${fK(p.valor)}</span>
+        <span class="pt2" style="color:${csC2}">⚖️${cs2}%</span>
       </div>
     </div>`;
   });
@@ -864,143 +900,528 @@ function rAcoesP(p){
       <button class="pb2" onclick="acaoP('${p.id}','pesquisa')"><span class="pbt">🔬 Pesquisa jurídica</span><span class="pbd">Fortalece argumentos. +habilidade.</span></button>
     </div>`;
 }
-// ══ ENGINE DETERMINÍSTICO — sem API externa ══
-const CENAS={
-  audiencia:{
-    intro:[
-      (p,n)=>`[SISTEMA] A audiência de <b>${p.tipo}</b> tem início na <b>${p.tribunal}</b>. ${n} ocupa a tribuna.`,
-      (p,n)=>`[SISTEMA] O processo de <b>${p.autor} vs ${p.reu}</b> chega ao momento decisivo. <b>${p.tribunal}</b> — sala silenciosa.`,
-      (p,n)=>`[SISTEMA] Às 14h, o processo <b>${p.numero.slice(0,15)}…</b> é chamado. ${n} organiza suas notas rapidamente.`,
+// ══ ENGINE PROCESSUAL v3 ══
+
+// Perguntas por especialização e tipo de ação
+const QUIZ={
+  tributario:{
+    pesquisa:[
+      {q:'Qual é o prazo para oposição de Embargos à Execução Fiscal (LEF art. 16)?',
+       opts:['30 dias após a garantia do juízo','15 dias da citação','5 dias da penhora','60 dias do ajuizamento'],c:0,
+       dica:'LEF art. 16 §1º: 30 dias contados da intimação da penhora ou do depósito.'},
+      {q:'A Exceção de Pré-Executividade dispensa:',
+       opts:['Garantia do juízo','Advogado constituído','Citação do executado','Nenhuma das anteriores'],c:0,
+       dica:'STJ Súmula 393: EPE não exige garantia — cabível para vícios cognoscíveis de ofício.'},
+      {q:'O prazo decadencial para lançamento tributário por homologação (CTN art. 150) é de:',
+       opts:['5 anos do fato gerador','10 anos do pagamento','3 anos da declaração','2 anos do vencimento'],c:0,
+       dica:'CTN art. 150 §4º: 5 anos contados da ocorrência do fato gerador para homologação tácita.'},
+      {q:'Na compensação tributária, o pedido administrativo:',
+       opts:['Não suspende a exigibilidade do crédito (STJ Tema 259)','Suspende automaticamente','Extingue definitivamente','Gera direito a juros imediatos'],c:0,
+       dica:'STJ Tema 259: o pedido de compensação não suspende a exigibilidade. Só medida judicial com liminar.'},
+      {q:'O CARF é competente para julgar:',
+       opts:['Recursos de decisões de DRJs sobre tributos federais','Execuções fiscais da União','Infrações tributárias estaduais','Pedidos de restituição do FGTS'],c:0,
+       dica:'Decreto 70.235/72 art. 25: CARF julga recursos de contribuintes contra decisões de Delegacias da Receita Federal.'},
     ],
-    juiz:[
-      (p)=>`[JUIZ] Dr(a). ${['Lima','Carvalho','Mendes','Rodrigues'][rnd(4)]}: "Prossiga com a sustentação oral. O feito diz respeito a ${p.tipo}."`,
-      (p)=>`[JUIZ] "Quero ouvir os argumentos sobre a aplicação do instrumento processual escolhido — ${p.peca}."`,
-      (p)=>`[JUIZ] "O Tribunal está ciente da matéria. Limitem-se aos pontos controvertidos."`,
-    ],
-    adv_forte:[
-      (p,n)=>`[ADVOGADO] ${n}: "Excelência, a ${p.peca} é a única via adequada ao caso. O art. pertinente é cristalino quanto à competência desta egrégia corte."`,
-      (p,n)=>`[ADVOGADO] ${n}: "Com a devida vênia, os elementos dos autos demonstram cabalmente a procedência do pedido. A jurisprudência do STJ é pacífica nesse sentido."`,
-      (p,n)=>`[ADVOGADO] ${n}: "Excelência, requeiro seja reconhecida a tese sustentada na peça inicial, com fundamento na lei e na jurisprudência consolidada."`,
-    ],
-    adv_fraco:[
-      (p,n)=>`[ADVOGADO] ${n}: "Excelência… conforme exposto nos autos… a parte requerente… tem razão no pedido formulado."`,
-      (p,n)=>`[ADVOGADO] ${n} hesita ao ser questionado sobre o fundamento legal específico, mas recupera o fôlego ao citar o instrumento processual utilizado.`,
-    ],
-    oponente:[
-      (p)=>`[OPONENTE] Advogado de ${p.reu}: "Excelência, o pedido é improcedente. Os fatos narrados não encontram respaldo jurídico suficiente."`,
-      (p)=>`[OPONENTE] Curador de ${p.reu}: "Requer-se a total improcedência. A documentação acostada é insuficiente para embasar a pretensão."`,
-      (p)=>`[OPONENTE] "A parte contrária não demonstrou o nexo causal exigido pela lei. Pedimos a extinção sem resolução do mérito."`,
-    ],
-  },
-  recurso:{
-    intro:[
-      (p,n)=>`[SISTEMA] ${n} protocola recurso nos autos de <b>${p.tipo}</b>. A peça de ${Math.floor(Math.random()*15+8)} laudas é distribuída ao relator.`,
-      (p,n)=>`[SISTEMA] O recurso interposto em face da decisão de <b>${p.fase}</b> aguarda inclusão em pauta no <b>${p.tribunal}</b>.`,
-    ],
-    adv:[
-      (p,n)=>`[ADVOGADO] ${n} sustenta: "A decisão recorrida viola o art. pertinente ao tema, razão pela qual requer seja reformada pelo egrégio colegiado."`,
-      (p,n)=>`[ADVOGADO] Nas razões recursais, ${n} aponta omissão no julgado e requer manifestação sobre os embargos de declaração opostos.`,
+    audiencia:[
+      {q:'Em audiência de Execução Fiscal, o devedor pode apresentar:',
+       opts:['Embargos à EF com garantia do juízo','Contestação oral','Reconvenção','Exceção dilatória de prazo'],c:0,
+       dica:'LEF art. 16: o executado só pode discutir a dívida via Embargos, que exigem garantia do juízo.'},
+      {q:'A penhora online (Bacen-Jud) em EF pode ser feita:',
+       opts:['Independentemente de citação pessoal frustrada prévia (STJ Tema 1.026)','Apenas após 3 tentativas frustradas','Somente com autorização do CGJ','Apenas para débitos acima de 500 SM'],c:0,
+       dica:'STJ Tema 1.026: a penhora eletrônica pode ser determinada sem esgotamento prévio de outras diligências.'},
+      {q:'Qual é o recurso cabível contra decisão interlocutória em Execução Fiscal?',
+       opts:['Agravo de Instrumento (CPC art. 1.015)','Apelação imediata','Embargos de Declaração','Recurso Ordinário'],c:0,
+       dica:'CPC art. 1.015 combinado com LEF: cabe Agravo de Instrumento contra decisões interlocutórias em EF.'},
     ],
   },
-  acordo:{
-    intro:[
-      (p,n)=>`[SISTEMA] Sessão de conciliação em <b>${p.tipo}</b>. ${n} e o representante de ${p.reu} se encontram na sala de mediação.`,
-      (p,n)=>`[SISTEMA] ${n} apresenta proposta de acordo em audiência preliminar. O valor em discussão: <b>${fmt(Math.floor(p.valor*0.6))}</b>.`,
+  trabalhista:{
+    pesquisa:[
+      {q:'O prazo prescricional para ajuizar reclamação trabalhista é de:',
+       opts:['2 anos após a extinção do contrato, créditos dos últimos 5 anos','5 anos sempre','1 ano do ato lesivo','30 dias da demissão'],c:0,
+       dica:'CF art. 7º XXIX: 2 anos após a extinção, limitado a créditos dos últimos 5 anos do contrato.'},
+      {q:'A SV 22 STF estabelece que acidente de trabalho é julgado:',
+       opts:['Pela Justiça do Trabalho','Pela Justiça Comum Estadual','Pelo JEF Federal','Pelo TJRJ'],c:0,
+       dica:'SV 22 STF: JT tem competência para ações de indenização por acidente de trabalho (após EC 45/2004).'},
+      {q:'Para equiparação salarial (CLT art. 461), a diferença de tempo na função não pode ser superior a:',
+       opts:['4 anos','2 anos','1 ano','Não há limite temporal'],c:0,
+       dica:'CLT art. 461 §4º (Reforma 2017): diferença de tempo na função não superior a 4 anos.'},
+      {q:'A multa do art. 477 §8º CLT por atraso nas verbas rescisórias equivale a:',
+       opts:['1 salário do empregado','50% das verbas devidas','10% do FGTS','2 salários'],c:0,
+       dica:'CLT art. 477 §8º: o empregador que não pagar no prazo fica obrigado a pagar multa equivalente ao salário do empregado.'},
+      {q:'O vínculo de emprego exige cumulativamente:',
+       opts:['Pessoalidade, não-eventualidade, onerosidade e subordinação','Exclusividade e jornada fixa','Contrato escrito e CTPS','Registro e subordinação apenas'],c:0,
+       dica:'CLT art. 3º: os 4 elementos são pessoalidade, não-eventualidade, onerosidade e subordinação jurídica.'},
     ],
-    adv:[
-      (p,n)=>`[ADVOGADO] ${n}: "Propomos o encerramento amigável da lide pelo valor de ${fmt(Math.floor(p.valor*0.55))}, evitando os custos de uma instrução prolongada."`,
-      (p,n)=>`[ADVOGADO] ${n}: "A proposta contempla ${fmt(Math.floor(p.valor*0.65))} em parcela única. É uma solução justa para ambas as partes."`,
-    ],
-    oponente:[
-      (p)=>`[OPONENTE] Representante de ${p.reu}: "Consideramos a proposta. Precisamos consultar nossa diretoria antes de formalizar qualquer compromisso."`,
-      (p)=>`[OPONENTE] "O valor é elevado. Contraproposta de ${fmt(Math.floor(p.valor*0.35))} é o máximo que podemos oferecer no momento."`,
+    audiencia:[
+      {q:'Na JT, a audiência una contempla em uma só sessão:',
+       opts:['Conciliação, instrução e julgamento','Apenas conciliação','Instrução e sentença','Somente depoimento das partes'],c:0,
+       dica:'CLT art. 849: a audiência trabalhista é una, comportando defesa, instrução e sentença em sessão única (ou continuações).'},
+      {q:'O depósito recursal no TST para interposição de recurso de revista equivale a:',
+       opts:['Valor previsto em ato do TST, limitado ao valor da condenação','10% do valor da causa','FGTS do período','Honorários advocatícios'],c:0,
+       dica:'CLT art. 899 §4º: o depósito recursal é fixado pelo TST e limitado ao valor da condenação (atualizado).'},
+      {q:'Em reclamação trabalhista, honorários advocatícios sucumbenciais são devidos:',
+       opts:['Entre 5% e 15% sobre o valor da condenação (CLT art. 791-A)','Apenas ao advogado do trabalhador','Somente em caso de litigância de má-fé','Nunca na JT'],c:0,
+       dica:'CLT art. 791-A (Reforma 2017): honorários de 5% a 15% sobre o valor que o advogado gerou de êxito.'},
     ],
   },
-  pesquisa:{
-    intro:[
-      (p,n)=>`[SISTEMA] ${n} dedica horas à pesquisa jurisprudencial sobre <b>${p.tipo}</b>. O banco do STJ retorna ${Math.floor(Math.random()*40+10)} acórdãos relevantes.`,
-      (p,n)=>`[SISTEMA] A análise doutrinária aprofundada revela precedentes favoráveis à tese sustentada na <b>${p.peca}</b>.`,
+  civil:{
+    pesquisa:[
+      {q:'O prazo para contestação no rito ordinário (CPC art. 335) é de:',
+       opts:['15 dias úteis','10 dias corridos','30 dias úteis','5 dias úteis'],c:0,
+       dica:'CPC art. 335: o réu poderá oferecer contestação, por petição, no prazo de 15 dias.'},
+      {q:'A tutela de urgência antecipada (CPC art. 300) dispensa:',
+       opts:['Prova inequívoca da certeza do direito (basta probabilidade)','Perigo de dano','Requerimento da parte','Contraditório prévio em casos excepcionais'],c:0,
+       dica:'CPC art. 300: basta probabilidade do direito (não certeza) + perigo de dano ou risco ao resultado útil.'},
+      {q:'A prescrição da pretensão de reparação civil extracontratual é de:',
+       opts:['3 anos (CC art. 206 §3º V)','10 anos','5 anos','1 ano'],c:0,
+       dica:'CC art. 206 §3º V: prescreve em 3 anos a pretensão de reparação civil extracontratual.'},
+      {q:'O prazo para interposição de apelação (CPC art. 1.003 §5º) é de:',
+       opts:['15 dias úteis','10 dias corridos','30 dias','5 dias úteis'],c:0,
+       dica:'CPC art. 1.003 §5º: prazo de 15 dias úteis para a maioria dos recursos, incluindo apelação.'},
+      {q:'A ação monitória (CPC art. 700) é cabível quando:',
+       opts:['Há prova escrita sem eficácia de título executivo','Existe título executivo extrajudicial','Há sentença judicial transitada','Não há qualquer prova'],c:0,
+       dica:'CPC art. 700: ação monitória para quem tiver prova escrita sem eficácia de título executivo de obrigação de pagamento, de entrega de coisa ou de fazer/não fazer.'},
     ],
-    adv:[
-      (p,n)=>`[ADVOGADO] ${n} elabora memorando interno: "Identificados ${Math.floor(Math.random()*5+2)} acórdãos do STJ e ${Math.floor(Math.random()*3+1)} do STF favoráveis. Tese sólida."`,
-      (p,n)=>`[ADVOGADO] ${n} anota: "A doutrina majoritária sustenta nossa posição. Incluir no próximo prazo processual."`,
+    audiencia:[
+      {q:'A audiência de conciliação e mediação (CPC art. 334) deve ocorrer:',
+       opts:['Antes da contestação, em até 30 dias da citação','Após a contestação','No início da instrução','Apenas se as partes concordarem'],c:0,
+       dica:'CPC art. 334: a audiência de conciliação é designada no prazo de 20-30 dias após a citação, antes de qualquer contestação.'},
+      {q:'Em audiência de instrução, a ordem dos depoimentos é:',
+       opts:['Autor, depois réu, depois testemunhas','Testemunhas primeiro','Réu, depois autor','Qualquer ordem a critério do juiz'],c:0,
+       dica:'CPC art. 457: na audiência de instrução, ouvem-se primeiro as partes (autor, depois réu) e depois as testemunhas.'},
+      {q:'Os honorários periciais no processo civil são:',
+       opts:['Pagos antecipadamente pela parte que requereu a perícia','Divididos igualmente','Pagos ao final pelo sucumbente','Custeados pelo Estado'],c:0,
+       dica:'CPC art. 95: cada parte adianta os honorários do perito que indicou. O adiantamento é da parte que requereu.'},
+    ],
+  },
+  criminal:{
+    pesquisa:[
+      {q:'O princípio da insignificância exige, segundo o STF (HC 84.412):',
+       opts:['Mínima ofensividade, ausência de periculosidade, reduzido grau de reprovabilidade e inexpressividade da lesão','Valor inferior a 1 SM','Primariedade do agente','Qualquer desses elementos isoladamente'],c:0,
+       dica:'STF HC 84.412: os 4 vetores são cumulativos: ofensividade mínima, periculosidade nenhuma, reprovabilidade ínfima e lesão inexpressiva.'},
+      {q:'O flagrante preparado (provocado) gera:',
+       opts:['Crime impossível — atipicidade (Súmula 145 STF)','Atenuante da pena','Nulidade processual relativa','Causa de diminuição de pena'],c:0,
+       dica:'Súmula 145 STF: não há crime quando a preparação do flagrante pela polícia torna impossível a sua consumação.'},
+      {q:'O Acordo de Não Persecução Penal (ANPP — CPP art. 28-A) exige pena mínima:',
+       opts:['Inferior a 4 anos e crime sem violência ou grave ameaça','Inferior a 2 anos','Qualquer pena com réu primário','Abaixo de 8 anos com agravantes'],c:0,
+       dica:'CPP art. 28-A: cabível quando a pena mínima cominada for inferior a 4 anos e o crime não for com violência ou grave ameaça.'},
+      {q:'O prazo máximo de prisão preventiva sem sentença condenatória é regulado por:',
+       opts:['Proporcionalidade — sem prazo fixo, sujeito a revisões periódicas (CPP art. 316)','90 dias improrrogáveis','180 dias para crimes hediondos','30 dias prorrogável uma vez'],c:0,
+       dica:'CPP art. 316 §único: o juiz deve revisar a necessidade da prisão preventiva a cada 90 dias. Não há prazo máximo rígido (STF divergente).'},
+      {q:'A delação premiada (Lei 12.850/13) é homologada por:',
+       opts:['Juiz competente, ouvido o MP','Pelo MP sem controle judicial','Pela Delegacia de Polícia','Pelo próprio delatado'],c:0,
+       dica:'Lei 12.850/13 art. 4º §7º: o juiz deve ouvir o MP e o defensor antes de homologar o acordo de colaboração premiada.'},
+    ],
+    audiencia:[
+      {q:'A Resposta à Acusação (CPP art. 396-A) deve ser apresentada em:',
+       opts:['10 dias após notificação do recebimento da denúncia','5 dias da citação','15 dias úteis','30 dias do oferecimento da denúncia'],c:0,
+       dica:'CPP art. 396-A: prazo de 10 dias contados da notificação do acusado sobre o recebimento da denúncia.'},
+      {q:'O habeas corpus é cabível para:',
+       opts:['Proteger a liberdade de locomoção ameaçada por ilegalidade ou abuso de poder','Anular provas ilícitas','Discutir mérito de prisão domiciliar','Revisar dosimetria da pena'],c:0,
+       dica:'CF art. 5º LXVIII: HC protege a liberdade de ir, vir e permanecer contra coação ilegal ou abuso de poder.'},
+      {q:'Em plenário do Júri, o advogado de defesa tem direito a:',
+       opts:['2 horas e meia para sustentação, podendo ser prorrogado por 1 hora','1 hora improrrogável','3 horas fixas','Tempo ilimitado a critério do juiz-presidente'],c:0,
+       dica:'CPP art. 477: acusação e defesa têm 1 hora e meia cada; réplica e tréplica, 1 hora. O juiz-presidente pode prorrogar.'},
+    ],
+  },
+  empresarial:{
+    pesquisa:[
+      {q:'O stay period na Recuperação Judicial suspende ações por:',
+       opts:['180 dias, prorrogável por igual período uma vez (art. 6º Lei 11.101/05)','90 dias improrrogáveis','365 dias','60 dias do deferimento'],c:0,
+       dica:'Lei 11.101/05 art. 6º §4º: suspensão de 180 dias, prorrogável por mais 180 dias mediante decisão judicial fundamentada.'},
+      {q:'O prazo para apresentação do plano de recuperação judicial é:',
+       opts:['60 dias do deferimento do processamento (art. 53)','30 dias','90 dias','180 dias'],c:0,
+       dica:'Lei 11.101/05 art. 53: prazo improrrogável de 60 dias para o devedor apresentar o plano de recuperação.'},
+      {q:'Para a desconsideração da personalidade jurídica (CC art. 50 — teoria maior) é necessário:',
+       opts:['Desvio de finalidade OU confusão patrimonial','Apenas insolvência','Encerramento irregular','Qualquer ato ilícito dos sócios'],c:0,
+       dica:'CC art. 50: teoria maior exige abuso da personalidade por desvio de finalidade OU confusão patrimonial. Insolvência sozinha não basta.'},
+      {q:'O quórum para aprovação do plano de RJ na AGC (credores com garantia real) é:',
+       opts:['Maioria dos créditos de cada classe separadamente','2/3 de todos os credores','Unanimidade dos quirografários','50%+1 dos presentes'],c:0,
+       dica:'Lei 11.101/05 art. 45: aprovação por maioria dos créditos de cada classe. Classe de credores com garantia real: 2/3 dos créditos.'},
+      {q:'Credores que NÃO se submetem à recuperação judicial:',
+       opts:['Fiduciários, alienação fiduciária, arrendamento mercantil e créditos fiscais','Apenas trabalhistas','Todos os credores com garantia','Credores quirografários estrangeiros'],c:0,
+       dica:'Lei 11.101/05 art. 49 §3º e CTN art. 187: créditos fiduciários, alienação fiduciária, arrendamento e créditos fiscais ficam de fora.'},
+    ],
+    audiencia:[
+      {q:'A assembleia geral de credores (AGC) na RJ é presidida por:',
+       opts:['Administrador judicial','Juiz da recuperação','Maior credor','Devedor em recuperação'],c:0,
+       dica:'Lei 11.101/05 art. 37: a AGC é presidida pelo administrador judicial, que conduz os trabalhos e apura votações.'},
+      {q:'O voto na AGC é proporcional ao:',
+       opts:['Valor do crédito habilitado em cada classe','Número de credores presentes','Ordem de inscrição no quadro geral','Antiguidade do crédito'],c:0,
+       dica:'Lei 11.101/05 art. 38: cada credor tem direito a voto na proporção do valor de seu crédito em cada classe.'},
+      {q:'O Cram-down (aprovação do plano pelo juiz mesmo sem quórum da AGC) exige:',
+       opts:['Aprovação de pelo menos 1/3 dos credores de alguma classe e ausência de tratamento desfavorável','Aprovação unânime de outra classe','Autorização do MP','Aquiescência do devedor'],c:0,
+       dica:'Lei 11.101/05 art. 58 §1º: cram-down exige votação favorável de pelo menos 1 classe + ausência de tratamento discriminatório.'},
+    ],
+  },
+  constitucional:{
+    pesquisa:[
+      {q:'A reserva de plenário (CF art. 97) exige para declarar inconstitucionalidade:',
+       opts:['Maioria absoluta do pleno ou órgão especial','Maioria simples de qualquer câmara','Unanimidade','Apenas o relator'],c:0,
+       dica:'CF art. 97 + SV 10 STF: somente pelo voto da maioria absoluta dos membros do tribunal pleno ou órgão especial.'},
+      {q:'A ADPF (CF art. 102 §1º) tem caráter:',
+       opts:['Subsidiário — só cabe se não houver outro meio eficaz de sanar a lesividade','Principal e autônomo','Idêntico à ADI','Exclusivo para atos anteriores à CF/88'],c:0,
+       dica:'Lei 9.882/99 art. 4º §1º: ADPF é subsidiária — inadmissível quando houver qualquer outro meio eficaz de sanar a lesividade.'},
+      {q:'A modulação de efeitos nas decisões do STF (Lei 9.868/99 art. 27) exige:',
+       opts:['2/3 dos membros do STF para razões de segurança jurídica','Maioria simples','Unanimidade','Aprovação do Senado Federal'],c:0,
+       dica:'Lei 9.868/99 art. 27: por maioria de 2/3 de seus membros, o STF poderá restringir efeitos ou fixar outro momento para eficácia.'},
+      {q:'O mandado de injunção (CF art. 5º LXXI) é cabível quando:',
+       opts:['Falta norma regulamentadora que torne inviável o exercício de direito constitucional','Há omissão administrativa','Existe lei inconstitucional','O direito já é autoaplicável'],c:0,
+       dica:'CF art. 5º LXXI: MI cabe quando a falta de norma regulamentadora torne inviável o exercício de direitos e liberdades constitucionais.'},
+      {q:'O STF pode rever sua própria súmula vinculante mediante:',
+       opts:['Aprovação de 2/3 dos membros após processo de revisão (CF art. 103-A §2º)','Maioria simples em sessão plenária','Pedido do PGR apenas','Aprovação do Congresso Nacional'],c:0,
+       dica:'CF art. 103-A §2º: revisão ou cancelamento por iniciativa dos legitimados, com aprovação de 2/3 do STF, de ofício ou por provocação.'},
+    ],
+    audiencia:[
+      {q:'Na sustentação oral no STF, o advogado tem:',
+       opts:['15 minutos por parte (prorrogável a critério do Presidente)','30 minutos','1 hora','5 minutos improrrogáveis'],c:0,
+       dica:'RISTF art. 131: 15 minutos por parte para sustentação oral no plenário do STF, podendo ser prorrogados pelo Presidente.'},
+      {q:'O amicus curiae no STF:',
+       opts:['Pode ser admitido pelo relator a qualquer tempo até o início do julgamento','Só pode ser pessoa jurídica','Tem direito a voto nas deliberações','É sempre admitido automaticamente'],c:0,
+       dica:'CPC art. 138 + RISTF: admissão pelo relator, considerando a relevância da matéria e representatividade do postulante.'},
+    ],
+  },
+  ambiental:{
+    pesquisa:[
+      {q:'A responsabilidade civil por dano ambiental (Lei 6.938/81 art. 14 §1º) é:',
+       opts:['Objetiva — dispensa culpa, basta nexo causal','Subjetiva com culpa grave','Solidária apenas entre PJs','Limitada ao seguro ambiental'],c:0,
+       dica:'Lei 6.938/81 art. 14 §1º: responsabilidade objetiva — independe de culpa, bastando nexo entre atividade e dano.'},
+      {q:'O prazo para defesa administrativa em auto de infração do IBAMA (Dec. 6.514/08) é de:',
+       opts:['20 dias da ciência da autuação','5 dias','30 dias','10 dias úteis'],c:0,
+       dica:'Decreto 6.514/2008 art. 71: o autuado terá prazo de 20 dias da ciência da autuação para oferecer defesa administrativa.'},
+      {q:'A Área de Preservação Permanente (APP) é definida pelo:',
+       opts:['Código Florestal (Lei 12.651/12) arts. 4º e 5º','CONAMA 303/02 exclusivamente','IBAMA caso a caso','Plano Diretor Municipal'],c:0,
+       dica:'Lei 12.651/12 arts. 4º e 5º: APPs legais (margens de rios, encostas, topos de morro etc.) e APPs por ato do Poder Público.'},
+      {q:'A desconsideração da personalidade jurídica por dano ambiental (Lei 9.605/98 art. 4º) adota:',
+       opts:['Teoria menor — basta que a PJ seja obstáculo ao ressarcimento','Teoria maior — exige desvio de finalidade','Apenas CC art. 50','Responsabilidade solidária automática dos sócios'],c:0,
+       dica:'Lei 9.605/98 art. 4º: teoria menor do direito ambiental — basta que a personalidade seja obstáculo ao ressarcimento do dano ambiental.'},
+      {q:'Crimes ambientais admitem responsabilidade penal de pessoa jurídica segundo:',
+       opts:['CF art. 225 §3º e Lei 9.605/98 art. 3º','Apenas CP','Somente para empresas públicas','Não admitem — apenas civil e administrativa'],c:0,
+       dica:'CF art. 225 §3º + Lei 9.605/98 art. 3º: a PJ pode ser responsabilizada penalmente em condutas lesivas ao meio ambiente.'},
+    ],
+    audiencia:[
+      {q:'Na Ação Civil Pública ambiental, o MP pode atuar como:',
+       opts:['Autor principal ou fiscal da lei (custos legis)','Apenas como interveniente','Réu em caso de omissão','Somente como amicus curiae'],c:0,
+       dica:'Lei 7.347/85 art. 5º: o MP tem legitimidade ativa na ACP; quando não for autor, atua obrigatoriamente como fiscal da lei.'},
+      {q:'A liminar em ACP ambiental pode ser concedida:',
+       opts:['Sem audiência da parte ré se houver urgência (Lei 7.347/85 art. 12)','Somente após contestação','Apenas pelo TJ','Com caução obrigatória'],c:0,
+       dica:'Lei 7.347/85 art. 12: o juiz poderá conceder mandado liminar inaudita altera pars, com ou sem justificação prévia.'},
+    ],
+  },
+  previdenciario:{
+    pesquisa:[
+      {q:'A carência para auxílio por incapacidade temporária é de:',
+       opts:['12 contribuições (salvo acidente e doenças da lista especial — carência zero)','24 contribuições','6 meses de trabalho','Não há carência'],c:0,
+       dica:'Lei 8.213/91 arts. 25 I e 26: regra geral 12 meses; exceção para acidente de qualquer natureza e doenças do art. 26 — carência zero.'},
+      {q:'O período de graça (manutenção da qualidade de segurado) para desempregado com mais de 120 contribuições é de:',
+       opts:['24 meses','12 meses','36 meses','6 meses'],c:0,
+       dica:'Lei 8.213/91 art. 15 II: 24 meses para segurado desempregado. Com mais de 120 contribuições: 24 meses (regra do §1º).'},
+      {q:'A competência do JEF (Lei 10.259/01) em causas previdenciárias abrange valores até:',
+       opts:['60 salários mínimos','40 SM','100 SM','Qualquer valor'],c:0,
+       dica:'Lei 10.259/01 art. 3º: o JEF federal tem competência para causas até 60 salários mínimos contra a União e entidades federais (inclui INSS).'},
+      {q:'A Revisão da Vida Toda (RVT) foi julgada pelo STF como:',
+       opts:['Possível — segurados que ingressaram antes de 29/11/1999 podem optar pelo cálculo mais vantajoso','Inconstitucional','Exclusiva para aposentadoria por invalidez','Válida apenas para rurais'],c:0,
+       dica:'STF (Tema 1.102): é possível que segurados filiados antes de 29/11/1999 incluam contribuições anteriores ao Plano Real no cálculo do benefício.'},
+      {q:'O benefício assistencial LOAS (Lei 8.742/93) é devido a:',
+       opts:['Pessoa com deficiência ou idoso ≥65 anos com renda familiar per capita inferior a 1/4 SM','Qualquer idoso acima de 60 anos','Pessoa com renda até 1 SM','Desempregado com dependentes'],c:0,
+       dica:'LOAS art. 20: idoso ≥65 anos OU pessoa com deficiência + renda familiar mensal per capita inferior a 1/4 do SM.'},
+    ],
+    audiencia:[
+      {q:'Na audiência previdenciária, a perícia médica judicial:',
+       opts:['É realizada por perito do juízo, vinculando o magistrado em suas conclusões técnicas mas não jurídicas','É dispensável se houver laudo do INSS','Só pode ser feita pelo INSS','É feita apenas em segunda instância'],c:0,
+       dica:'CPC art. 473: o laudo pericial não vincula o juiz na apreciação jurídica do fato, mas o magistrado deve fundamentar discordância técnica.'},
+      {q:'O INSS tem prazo para analisar requerimento administrativo de:',
+       opts:['45 dias (Lei 9.784/99 art. 49), após o que MS é cabível','30 dias','90 dias','Prazo indeterminado'],c:0,
+       dica:'Lei 9.784/99 art. 49: a Administração tem 30 dias para decidir, prorrogáveis por mais 30. Para o INSS, entende-se 45 dias (art. 41-A Lei 8.213/91).'},
+      {q:'A implantação imediata do benefício previdenciário em tutela de urgência exige:',
+       opts:['Probabilidade do direito + perigo de dano irreparável (CPC art. 300)','Sentença de 1ª instância','Trânsito em julgado','Apenas laudo médico'],c:0,
+       dica:'CPC art. 300: tutela de urgência antecipada — probabilidade do direito (verossimilhança) + perigo de dano. Extensamente aplicada em causas previdenciárias.'},
     ],
   },
 };
-const RESULTADOS={
-  ganho:[
-    (p,h)=>`[RESULTADO] ✅ GANHOU · +XP${25+h*15} · rep:+${6+h*4} · Decisão favorável ao cliente. Honorários: ${fmt(p.hon)} liberados.`,
-    (p,h)=>`[RESULTADO] ✅ GANHOU · +XP${20+h*12} · rep:+${5+h*3} · Procedência reconhecida. Trânsito em julgado em 15 dias.`,
-  ],
-  perdido:[
-    (p)=>`[RESULTADO] ❌ PERDEU · +XP8 · rep:-5 · Improcedência decretada. Possível recurso na instância superior.`,
-    (p)=>`[RESULTADO] ❌ PERDEU · +XP6 · rep:-4 · Pedido indeferido. Prazo recursal: 15 dias úteis (CPC art. 1.003).`,
-  ],
-  continuando:[
-    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP18 · rep:+3 · Processo avança para ${['Instrução','Audiência','Sentença'][rnd(3)]}. Diligências pendentes.`,
-    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP15 · rep:+2 · Juiz determina complementação de provas. Nova data designada.`,
-    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP20 · rep:+4 · Sustentação bem recebida. Processo em vista ao MP para parecer.`,
-  ],
+
+// Recursos cabíveis por área e instância
+const RECURSOS_ESP={
+  tributario:{  ap:'Apelação / Remessa Necessária', resp:'Recurso Especial (STJ)', re:'Recurso Extraordinário (STF)'},
+  trabalhista:{ ap:'Recurso Ordinário (TRT)',       resp:'Recurso de Revista (TST)',re:'Recurso Extraordinário (STF)'},
+  civil:{       ap:'Apelação (TJRJ)',               resp:'Recurso Especial (STJ)',  re:'Recurso Extraordinário (STF)'},
+  criminal:{    ap:'Apelação Criminal',             resp:'Recurso Especial (STJ)',  re:'Recurso Extraordinário (STF)'},
+  empresarial:{ ap:'Apelação (TJRJ)',               resp:'Recurso Especial (STJ)',  re:'Recurso Extraordinário (STF)'},
+  constitucional:{ap:'Recurso Ordinário Constitucional',resp:'Embargos de Divergência',re:'Recurso Extraordinário (STF)'},
+  ambiental:{   ap:'Apelação / Remessa Necessária', resp:'Recurso Especial (STJ)',  re:'Recurso Extraordinário (STF)'},
+  previdenciario:{ap:'Recurso Inominado (TNU)',     resp:'Recurso Especial (STJ)',  re:'Recurso Extraordinário (STF)'},
 };
-function pick(arr,...args){return arr[rnd(arr.length)](...args)}
-function gerarCena(p,acao,sv){
-  const n=G.nome;const c=CENAS[acao]||CENAS.audiencia;const forte=sv>=55;
-  let linhas=[];
-  if(acao==='audiencia'){
-    linhas.push(pick(c.intro,p,n));
-    linhas.push(pick(c.juiz,p));
-    linhas.push(forte?pick(c.adv_forte,p,n):pick(c.adv_fraco,p,n));
-    linhas.push(pick(c.oponente,p));
-  } else if(acao==='recurso'){
-    linhas.push(pick(c.intro,p,n));
-    linhas.push(pick(c.adv,p,n));
-  } else if(acao==='acordo'){
-    linhas.push(pick(c.intro,p,n));
-    linhas.push(pick(c.adv,p,n));
-    linhas.push(pick(c.oponente,p));
-  } else {
-    linhas.push(pick(CENAS.pesquisa.intro,p,n));
-    linhas.push(pick(CENAS.pesquisa.adv,p,n));
-  }
-  // Calcular resultado por probabilidade baseada em skill
-  const h=Math.floor(sv/20); // 0-5
-  const rndVal=Math.random();
-  let resultado,pRes;
-  if(acao==='pesquisa'){resultado=pick(RESULTADOS.continuando,p);pRes=null;}
-  else if(rndVal<(0.2+sv/150)){resultado=pick(RESULTADOS.ganho,p,h);pRes='ganho';}
-  else if(rndVal>(0.85-sv/200)){resultado=pick(RESULTADOS.perdido,p);pRes='perdido';}
-  else{resultado=pick(RESULTADOS.continuando,p);pRes=null;}
-  linhas.push(resultado);
-  return{linhas,pRes};
+
+// Quiz modal state
+let quizState={};
+
+function getQuiz(esp,acao){
+  const banco=QUIZ[esp]||QUIZ.civil;
+  const pool=banco[acao]||banco.pesquisa||[];
+  return [...pool].sort(()=>Math.random()-.5).slice(0,3);
 }
-function acaoP(id,acao){
-  const p=G.procs.find(x=>x.id===id);if(!p)return;
-  const log=document.getElementById('plog');
-  document.querySelectorAll('.pb2').forEach(b=>b.disabled=true);
-  const sm={audiencia:'oratoria',recurso:'peticao',acordo:'negociacao',pesquisa:'pesquisa'};
-  const sv=G.sk[sm[acao]]||20;
-  const{linhas,pRes}=gerarCena(p,acao,sv);
-  let html='';let xpG=18,repD=3;
-  linhas.forEach(l=>{
-    if(l.includes('[SISTEMA]'))html+=`<span class="ls">${l}</span><br>`;
-    else if(l.includes('[JUIZ]'))html+=`<span class="lj">${l}</span><br>`;
-    else if(l.includes('[ADVOGADO]'))html+=`<span class="la">${l}</span><br>`;
-    else if(l.includes('[OPONENTE]'))html+=`<span class="lo">${l}</span><br>`;
-    else if(l.includes('[RESULTADO]')){
-      html+=`<br><span class="lr">${l}</span><br>`;
-      const xM=l.match(/\+XP(\d+)/i);if(xM)xpG=parseInt(xM[1]);
-      const rM=l.match(/rep:([+-]?\d+)/i);if(rM)repD=parseInt(rM[1]);
-    }
+
+function rAcoesP(p){
+  const esp=G.esp;const rec=RECURSOS_ESP[esp]||RECURSOS_ESP.civil;
+  const instLabel={1:'1ª Instância',2:'2ª Instância ('+rec.ap+')',3:'STJ — '+rec.resp,4:'STF — '+rec.re};
+  const faseLabel=instLabel[p.instancia]||p.fase;
+  // Construir barra de progresso
+  const cs=p.chanceSucesso||50;
+  const csColor=cs>=70?'#69e08a':cs>=40?'#ffa726':'#ff8096';
+  const prog=p.progresso||0;
+  document.getElementById('pmc').innerHTML=`
+    <div style="background:rgba(255,255,255,.04);border-radius:2px;padding:.75rem;margin-bottom:.8rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <span style="font-size:.72rem;color:var(--sl)">Instância atual: <b style="color:var(--cr)">${faseLabel}</b></span>
+        <span style="font-size:.72rem;color:var(--sl)">Dificuldade: <b style="color:var(--d)">Nível ${p.nivel||1}</b></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+        <span style="font-size:.72rem;color:var(--sl)">Progresso do caso</span>
+        <span style="font-size:.72rem;font-weight:600;color:var(--d)">${prog}%</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-bottom:.5rem">
+        <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,var(--vc),var(--d));transition:width .5s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.72rem;color:var(--sl)">⚖️ Chance de vitória</span>
+        <span style="font-size:.8rem;font-weight:700;color:${csColor}">${cs}%</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-top:.3rem">
+        <div style="height:100%;width:${cs}%;background:${csColor};transition:width .5s"></div>
+      </div>
+      ${p.instancia>1?`<div style="margin-top:.5rem;font-size:.72rem;color:#69e08a">💰 Honorários acumulados: <b>${fmt(p.hon_total)}</b></div>`:''}
+    </div>
+    <div style="font-size:.78rem;color:var(--sl);margin-bottom:.55rem">Escolha a próxima ação:</div>
+    <div class="pg">
+      <button class="pb2" onclick="iniciarQuiz('${p.id}','audiencia')">
+        <span class="pbt">🏛️ Realizar audiência</span>
+        <span class="pbd">3 perguntas → progresso e chance de vitória</span>
+      </button>
+      <button class="pb2" onclick="iniciarQuiz('${p.id}','pesquisa')">
+        <span class="pbt">🔬 Pesquisa jurídica</span>
+        <span class="pbd">3 perguntas → +progresso e +habilidade</span>
+      </button>
+      <button class="pb2" onclick="acaoAcordo('${p.id}')">
+        <span class="pbt">🤝 Propor acordo</span>
+        <span class="pbd">Encerrar agora · honorários parciais</span>
+      </button>
+      ${p.instancia>1&&p.recurso_adv==='pendente'?`
+      <button class="pb2" style="border-color:#ff8096" onclick="decidirRecurso('${p.id}',true)">
+        <span class="pbt" style="color:#ff8096">⚠️ Interpor recurso</span>
+        <span class="pbd">Chance: ${cs}% · Risco: -rep e -XP se perder</span>
+      </button>
+      <button class="pb2" onclick="decidirRecurso('${p.id}',false)">
+        <span class="pbt">✋ Não recorrer</span>
+        <span class="pbd">Encerrar com resultado atual</span>
+      </button>
+      `:''}
+    </div>`;
+}
+
+function iniciarQuiz(procId,acao){
+  const p=G.procs.find(x=>x.id===procId);if(!p)return;
+  const perguntas=getQuiz(G.esp,acao);
+  quizState={procId,acao,perguntas,qi:0,acertos:0};
+  renderQuizQ();
+}
+
+function renderQuizQ(){
+  const{perguntas,qi,acao}=quizState;
+  const q=perguntas[qi];
+  const pmc=document.getElementById('pmc');
+  const titulo=acao==='audiencia'?'🏛️ Audiência — questão':'🔬 Pesquisa — questão';
+  pmc.innerHTML=`
+    <div style="background:rgba(30,64,128,.12);border:1px solid rgba(30,64,128,.35);border-radius:2px;padding:.75rem;margin-bottom:.8rem">
+      <div style="font-size:.72rem;color:#90b8ff;margin-bottom:.2rem">${titulo} ${qi+1} de ${perguntas.length}</div>
+      <div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-bottom:.6rem">
+        <div style="height:100%;width:${Math.round((qi/perguntas.length)*100)}%;background:#90b8ff"></div>
+      </div>
+      <div style="font-size:.85rem;color:var(--cr);line-height:1.6;margin-bottom:.8rem">${q.q}</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem">
+        ${q.opts.map((o,i)=>`<button onclick="responderQuiz(${i})" style="background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.3);color:var(--cr);padding:.55rem .75rem;border-radius:2px;font-size:.8rem;text-align:left;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(201,168,76,.12)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">${o}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function responderQuiz(idx){
+  const{perguntas,qi,acao,procId}=quizState;
+  const q=perguntas[qi];
+  const certo=idx===q.c;
+  if(certo)quizState.acertos++;
+  // Mostrar feedback
+  const btns=document.getElementById('pmc').querySelectorAll('button');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.c)b.style.cssText+='border-color:#4caf50;background:rgba(76,175,80,.15);color:#a5d6a7';
+    else if(i===idx&&!certo)b.style.cssText+='border-color:#e53935;background:rgba(229,57,53,.1);color:#ef9a9a';
   });
-  log.innerHTML=html;log.scrollTop=log.scrollHeight;
-  gainXP(xpG);G.rep=Math.max(0,Math.min(100,G.rep+repD));gainSk(sm[acao],sv<50?3:1);
-  if(pRes==='ganho'){G.dinheiro+=p.hon;G.wins++;G.rep=Math.min(100,G.rep+10);toast(`✅ Vitória! +${fmt(p.hon)} honorários`,'ok');p.status='ganho';finP(p.id);}
-  else if(pRes==='perdido'){G.losses++;G.rep=Math.max(0,G.rep-5);toast('❌ Encerrado desfavoravelmente.','ko');p.status='perdido';finP(p.id);}
-  else{const fs=['Petição Inicial','Contestação','Instrução','Audiência','Sentença'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
-  const bd=document.createElement('div');bd.style.cssText='display:flex;gap:.42rem;margin-top:.85rem';
-  bd.innerHTML=`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
-    ${!pRes?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${p.id}'))">Nova ação</button>`:''}`;
-  log.parentElement.appendChild(bd);updTb();updR();autoSave();
+  const dica=document.createElement('div');
+  dica.style.cssText='font-size:.73rem;color:var(--sl);padding:.55rem;background:rgba(255,255,255,.04);border-radius:2px;margin-top:.5rem;line-height:1.5';
+  dica.innerHTML=`${certo?'✅ Correto!':'❌ Incorreto.'} <b>📖 ${q.dica}</b>`;
+  document.getElementById('pmc').querySelector('div').appendChild(dica);
+  const btn=document.createElement('button');
+  btn.className='bp';btn.style.cssText='margin-top:.65rem;padding:.5rem;font-size:.8rem;width:100%';
+  const last=qi===perguntas.length-1;
+  btn.textContent=last?'Ver resultado →':'Próxima →';
+  btn.onclick=last?()=>finalizarQuiz():()=>{quizState.qi++;renderQuizQ();};
+  document.getElementById('pmc').querySelector('div').appendChild(btn);
+}
+
+function finalizarQuiz(){
+  const{procId,acao,acertos,perguntas}=quizState;
+  const p=G.procs.find(x=>x.id===procId);if(!p)return;
+  const total=perguntas.length;
+  const pct=Math.round(acertos/total*100);
+  // Impacto no caso proporcional ao desempenho no quiz
+  const impactoProgresso=acao==='audiencia'?[10,20,30,35][acertos]:// 0,1,2,3 acertos
+                                            [5, 12,20,25][acertos];
+  const impactoChance=acao==='audiencia'?[-8,-2,6,12][acertos]:
+                                         [-4,0, 5, 9][acertos];
+  const impactoXP=[5,12,22,35][acertos];
+  const impactoRep=acao==='audiencia'?[-2,0,3,6][acertos]:[-1,0,2,4][acertos];
+  const impactoSk=acao==='audiencia'?'oratoria':'pesquisa';
+
+  p.progresso=Math.min(100,(p.progresso||0)+impactoProgresso);
+  p.chanceSucesso=Math.max(5,Math.min(95,(p.chanceSucesso||50)+impactoChance));
+  gainXP(impactoXP);
+  G.rep=Math.max(0,Math.min(100,G.rep+impactoRep));
+  gainSk(impactoSk,acertos>=2?3:1);
+
+  const cor=acertos===3?'#69e08a':acertos===2?'var(--d)':acertos===1?'#ffa726':'#ff8096';
+  const msg=acertos===3?'Desempenho excelente! Caso avança decisivamente.':
+            acertos===2?'Bom desempenho. Progresso sólido.':
+            acertos===1?'Desempenho mediano. Algum progresso.':
+                        'Desempenho fraco. Pouco progresso no caso.';
+
+  // Verificar se o caso atingiu 100% de progresso → sentença
+  let extra='';
+  if(p.progresso>=100){
+    extra=resolverSentenca(p);
+  }
+
+  document.getElementById('pmc').innerHTML=`
+    <div style="text-align:center;padding:1rem;background:rgba(255,255,255,.04);border-radius:2px;margin-bottom:.8rem">
+      <div style="font-size:2rem;margin-bottom:.3rem">${acertos===3?'🏆':acertos===2?'👍':acertos===1?'😐':'😔'}</div>
+      <div style="font-size:1.4rem;font-weight:700;color:${cor};margin-bottom:.2rem">${acertos}/${total} corretas</div>
+      <div style="font-size:.8rem;color:var(--sl);margin-bottom:.6rem">${msg}</div>
+      <div style="font-size:.75rem;color:var(--cr);line-height:1.8">
+        Progresso: <b style="color:var(--d)">${p.progresso}%</b> &nbsp;·&nbsp;
+        Chance de vitória: <b style="color:${p.chanceSucesso>=70?'#69e08a':p.chanceSucesso>=40?'#ffa726':'#ff8096'}">${p.chanceSucesso}%</b><br>
+        +${impactoXP} XP &nbsp;·&nbsp; Rep ${impactoRep>=0?'+':''}${impactoRep}
+      </div>
+    </div>
+    ${extra}
+    <div style="display:flex;gap:.42rem;margin-top:.7rem">
+      <button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
+      ${!p.status||p.status==='andamento'?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${procId}'))">Continuar →</button>`:''}
+    </div>`;
+  updTb();updR();autoSave();
+}
+
+function resolverSentenca(p){
+  // Sentença baseada na chanceSucesso
+  const cs=p.chanceSucesso||50;
+  const roll=Math.random()*100;
+  const ganhou=roll<cs;
+  const rec=RECURSOS_ESP[G.esp]||RECURSOS_ESP.civil;
+  let html='';
+  if(ganhou){
+    // Jogador venceu → parte contrária pode recorrer se cs do jogador < 70%
+    const partRecorre=cs<70&&Math.random()<0.6;
+    p.hon_total=Math.floor(p.valor*0.10); // 10% 1ª instância
+    G.dinheiro+=p.hon_total;G.wins++;G.rep=Math.min(100,G.rep+8);gainXP(40);
+    if(partRecorre&&p.instancia<4){
+      // Parte contrária recorre → avança instância, honorários aumentam
+      p.instancia=(p.instancia||1)+1;
+      p.progresso=0;
+      const hon_add=p.instancia===2?p.valor*0.10:p.instancia===3?p.valor*0.05:p.valor*0.05;
+      p.hon=Math.floor(hon_add);
+      p.hon_total+=Math.floor(hon_add);
+      noticia(`⚖️ Vitória em 1ª instância! ${p.reu} recorreu via ${rec.ap}. Caso continua.`,'positivo');
+      html=`<div style="background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ffa726;line-height:1.6">
+        ✅ <b>Sentença favorável!</b> Honorários de 1ª instância: ${fmt(p.hon_total)}<br>
+        ⚠️ ${p.reu} recorreu via <b>${rec.ap}</b>. O caso continua na 2ª instância.
+      </div>`;
+    } else {
+      // Encerrado definitivamente
+      finP(p.id);
+      noticia(`🏆 Vitória definitiva: ${p.tipo} — ${fmt(p.hon_total)} em honorários!`,'positivo');
+      toast(`🏆 Vitória! +${fmt(p.hon_total)} honorários`,'ok');
+      html=`<div style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);border-radius:2px;padding:.7rem;font-size:.78rem;color:#a5d6a7;line-height:1.6">
+        🏆 <b>Vitória definitiva! Trânsito em julgado.</b><br>Honorários totais: <b>${fmt(p.hon_total)}</b>
+      </div>`;
+    }
+  } else {
+    // Jogador perdeu
+    G.losses++;G.rep=Math.max(0,G.rep-5);gainXP(10);
+    if(cs>=70){
+      // Pode recorrer
+      p.recurso_adv='pendente';
+      p.progresso=0;
+      noticia(`❌ Derrota em ${p.instancia===1?'1ª instância':p.instancia===2?'2ª instância':'superior'}. Chance acima de 70% — recurso recomendado.`,'urgente');
+      html=`<div style="background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ff8096;line-height:1.6">
+        ❌ <b>Sentença desfavorável.</b> Sua chance de sucesso é ${cs}% — <b>acima de 70%</b>.<br>
+        Você pode interpor <b>${rec.ap}</b>. Decida na próxima ação.
+      </div>`;
+    } else {
+      // Não pode ou não compensa recorrer
+      finP(p.id);
+      noticia(`❌ Derrota: ${p.tipo}. Chance abaixo de 70% — recurso não recomendado.`,'urgente');
+      toast('❌ Processo encerrado com derrota.','ko');
+      html=`<div style="background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ff8096;line-height:1.6">
+        ❌ <b>Sentença desfavorável.</b> Chance de sucesso: ${cs}% (abaixo de 70%).<br>
+        Recurso não é recomendado. Caso encerrado.
+      </div>`;
+    }
+  }
+  return html;
+}
+
+function decidirRecurso(procId,interpor){
+  const p=G.procs.find(x=>x.id===procId);if(!p)return;
+  const rec=RECURSOS_ESP[G.esp]||RECURSOS_ESP.civil;
+  if(!interpor){
+    // Não recorrer → encerrar
+    finP(procId);toast('Caso encerrado sem recurso.','');
+    cM('pm');sw('processos');return;
+  }
+  // Interpor recurso → avançar instância, honorários adicionais
+  p.instancia=(p.instancia||1)+1;
+  p.recurso_adv='interposto';
+  p.progresso=0;
+  const recLabel=p.instancia===2?rec.ap:p.instancia===3?rec.resp:rec.re;
+  const hon_add=p.instancia===2?p.valor*0.10:p.instancia===3?p.valor*0.05:p.valor*0.05;
+  p.hon=Math.floor(hon_add);
+  p.hon_total=(p.hon_total||0)+Math.floor(hon_add);
+  if(p.instancia>=4){
+    // Último recurso — RE → trânsito em julgado após julgamento
+    noticia(`📋 Recurso Extraordinário interposto no STF. Julgamento aguardado.`,'neutro');
+  } else {
+    noticia(`📋 ${recLabel} interposto. Honorários adicionais: ${fmt(Math.floor(hon_add))}`,'positivo');
+  }
+  toast(`📋 ${recLabel} interposto!`,'ok');
+  gainXP(15);cM('pm');
+  setTimeout(()=>{abrirPAcoes(procId);},80);
+  autoSave();
+}
+
+function acaoAcordo(procId){
+  const p=G.procs.find(x=>x.id===procId);if(!p)return;
+  const cs=p.chanceSucesso||50;
+  // Chance de acordo aceito proporcional à chance de sucesso do jogador
+  const acordoAceito=Math.random()<(cs/120+0.25);
+  const valorAcordo=Math.floor(p.valor*(0.35+cs/200));
+  const honAcordo=Math.floor(valorAcordo*0.10);
+  if(acordoAceito){
+    G.dinheiro+=honAcordo;G.wins++;gainXP(20);G.rep=Math.min(100,G.rep+3);
+    finP(procId);
+    noticia(`🤝 Acordo: ${p.tipo} — ${fmt(valorAcordo)} · honorários: ${fmt(honAcordo)}`,'positivo');
+    toast(`🤝 Acordo fechado! +${fmt(honAcordo)} honorários`,'ok');
+  } else {
+    noticia(`🤝 Proposta de acordo rejeitada em ${p.tipo}. Continue litigando.`,'neutro');
+    toast('❌ Acordo rejeitado. Continue com o caso.','ko');
+  }
+  cM('pm');sw('processos');autoSave();
 }
 function finP(id){const i=G.procs.findIndex(x=>x.id===id);if(i<0)return;G.prfin.push(G.procs[i]);G.procs.splice(i,1);}
 
@@ -1399,7 +1820,7 @@ async function advW(){
   G.audpend=G.audpend.filter(id=>G.procs.some(p=>p.id===id));
   if(Math.random()<.52)evSem();
   if(Math.random()<.18&&G.procs.length<9){G.procs.push(mkProc());noticia(`📁 Novo caso: ${G.procs[G.procs.length-1].tipo}`,'positivo');}
-  updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar semana';
+  updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar mês';
   const a=document.querySelector('.ni.on');if(a)sw(a.dataset.p);
   autoSave();
 }
@@ -1517,6 +1938,14 @@ window._loadSave=function(saved){
   if(!G.audpend)G.audpend=[];
   if(!G.prfin)G.prfin=[];
   if(!G.procs)G.procs=[];
+  if(!G.mes_global)G.mes_global=G.sg||1;
+  G.procs.forEach(p=>{
+    if(!p.instancia)p.instancia=1;
+    if(!p.chanceSucesso)p.chanceSucesso=50;
+    if(!p.progresso)p.progresso=0;
+    if(!p.hon_total)p.hon_total=p.hon||5000;
+    if(!p.nivel)p.nivel=1;
+  });
   if(G.procs.length===0)G.procs.push(mkProc());
   const pub=CAREERS[G.career]&&CAREERS[G.career].pub;
   if(pub)document.getElementById('nc').style.display='';
