@@ -741,49 +741,143 @@ function rAcoesP(p){
       <button class="pb2" onclick="acaoP('${p.id}','pesquisa')"><span class="pbt">🔬 Pesquisa jurídica</span><span class="pbd">Fortalece argumentos. +habilidade.</span></button>
     </div>`;
 }
-async function acaoP(id,acao){
+// ══ ENGINE DETERMINÍSTICO — sem API externa ══
+const CENAS={
+  audiencia:{
+    intro:[
+      (p,n)=>`[SISTEMA] A audiência de <b>${p.tipo}</b> tem início na <b>${p.tribunal}</b>. ${n} ocupa a tribuna.`,
+      (p,n)=>`[SISTEMA] O processo de <b>${p.autor} vs ${p.reu}</b> chega ao momento decisivo. <b>${p.tribunal}</b> — sala silenciosa.`,
+      (p,n)=>`[SISTEMA] Às 14h, o processo <b>${p.numero.slice(0,15)}…</b> é chamado. ${n} organiza suas notas rapidamente.`,
+    ],
+    juiz:[
+      (p)=>`[JUIZ] Dr(a). ${['Lima','Carvalho','Mendes','Rodrigues'][rnd(4)]}: "Prossiga com a sustentação oral. O feito diz respeito a ${p.tipo}."`,
+      (p)=>`[JUIZ] "Quero ouvir os argumentos sobre a aplicação do instrumento processual escolhido — ${p.peca}."`,
+      (p)=>`[JUIZ] "O Tribunal está ciente da matéria. Limitem-se aos pontos controvertidos."`,
+    ],
+    adv_forte:[
+      (p,n)=>`[ADVOGADO] ${n}: "Excelência, a ${p.peca} é a única via adequada ao caso. O art. pertinente é cristalino quanto à competência desta egrégia corte."`,
+      (p,n)=>`[ADVOGADO] ${n}: "Com a devida vênia, os elementos dos autos demonstram cabalmente a procedência do pedido. A jurisprudência do STJ é pacífica nesse sentido."`,
+      (p,n)=>`[ADVOGADO] ${n}: "Excelência, requeiro seja reconhecida a tese sustentada na peça inicial, com fundamento na lei e na jurisprudência consolidada."`,
+    ],
+    adv_fraco:[
+      (p,n)=>`[ADVOGADO] ${n}: "Excelência… conforme exposto nos autos… a parte requerente… tem razão no pedido formulado."`,
+      (p,n)=>`[ADVOGADO] ${n} hesita ao ser questionado sobre o fundamento legal específico, mas recupera o fôlego ao citar o instrumento processual utilizado.`,
+    ],
+    oponente:[
+      (p)=>`[OPONENTE] Advogado de ${p.reu}: "Excelência, o pedido é improcedente. Os fatos narrados não encontram respaldo jurídico suficiente."`,
+      (p)=>`[OPONENTE] Curador de ${p.reu}: "Requer-se a total improcedência. A documentação acostada é insuficiente para embasar a pretensão."`,
+      (p)=>`[OPONENTE] "A parte contrária não demonstrou o nexo causal exigido pela lei. Pedimos a extinção sem resolução do mérito."`,
+    ],
+  },
+  recurso:{
+    intro:[
+      (p,n)=>`[SISTEMA] ${n} protocola recurso nos autos de <b>${p.tipo}</b>. A peça de ${Math.floor(Math.random()*15+8)} laudas é distribuída ao relator.`,
+      (p,n)=>`[SISTEMA] O recurso interposto em face da decisão de <b>${p.fase}</b> aguarda inclusão em pauta no <b>${p.tribunal}</b>.`,
+    ],
+    adv:[
+      (p,n)=>`[ADVOGADO] ${n} sustenta: "A decisão recorrida viola o art. pertinente ao tema, razão pela qual requer seja reformada pelo egrégio colegiado."`,
+      (p,n)=>`[ADVOGADO] Nas razões recursais, ${n} aponta omissão no julgado e requer manifestação sobre os embargos de declaração opostos.`,
+    ],
+  },
+  acordo:{
+    intro:[
+      (p,n)=>`[SISTEMA] Sessão de conciliação em <b>${p.tipo}</b>. ${n} e o representante de ${p.reu} se encontram na sala de mediação.`,
+      (p,n)=>`[SISTEMA] ${n} apresenta proposta de acordo em audiência preliminar. O valor em discussão: <b>${fmt(Math.floor(p.valor*0.6))}</b>.`,
+    ],
+    adv:[
+      (p,n)=>`[ADVOGADO] ${n}: "Propomos o encerramento amigável da lide pelo valor de ${fmt(Math.floor(p.valor*0.55))}, evitando os custos de uma instrução prolongada."`,
+      (p,n)=>`[ADVOGADO] ${n}: "A proposta contempla ${fmt(Math.floor(p.valor*0.65))} em parcela única. É uma solução justa para ambas as partes."`,
+    ],
+    oponente:[
+      (p)=>`[OPONENTE] Representante de ${p.reu}: "Consideramos a proposta. Precisamos consultar nossa diretoria antes de formalizar qualquer compromisso."`,
+      (p)=>`[OPONENTE] "O valor é elevado. Contraproposta de ${fmt(Math.floor(p.valor*0.35))} é o máximo que podemos oferecer no momento."`,
+    ],
+  },
+  pesquisa:{
+    intro:[
+      (p,n)=>`[SISTEMA] ${n} dedica horas à pesquisa jurisprudencial sobre <b>${p.tipo}</b>. O banco do STJ retorna ${Math.floor(Math.random()*40+10)} acórdãos relevantes.`,
+      (p,n)=>`[SISTEMA] A análise doutrinária aprofundada revela precedentes favoráveis à tese sustentada na <b>${p.peca}</b>.`,
+    ],
+    adv:[
+      (p,n)=>`[ADVOGADO] ${n} elabora memorando interno: "Identificados ${Math.floor(Math.random()*5+2)} acórdãos do STJ e ${Math.floor(Math.random()*3+1)} do STF favoráveis. Tese sólida."`,
+      (p,n)=>`[ADVOGADO] ${n} anota: "A doutrina majoritária sustenta nossa posição. Incluir no próximo prazo processual."`,
+    ],
+  },
+};
+const RESULTADOS={
+  ganho:[
+    (p,h)=>`[RESULTADO] ✅ GANHOU · +XP${25+h*15} · rep:+${6+h*4} · Decisão favorável ao cliente. Honorários: ${fmt(p.hon)} liberados.`,
+    (p,h)=>`[RESULTADO] ✅ GANHOU · +XP${20+h*12} · rep:+${5+h*3} · Procedência reconhecida. Trânsito em julgado em 15 dias.`,
+  ],
+  perdido:[
+    (p)=>`[RESULTADO] ❌ PERDEU · +XP8 · rep:-5 · Improcedência decretada. Possível recurso na instância superior.`,
+    (p)=>`[RESULTADO] ❌ PERDEU · +XP6 · rep:-4 · Pedido indeferido. Prazo recursal: 15 dias úteis (CPC art. 1.003).`,
+  ],
+  continuando:[
+    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP18 · rep:+3 · Processo avança para ${['Instrução','Audiência','Sentença'][rnd(3)]}. Diligências pendentes.`,
+    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP15 · rep:+2 · Juiz determina complementação de provas. Nova data designada.`,
+    (p)=>`[RESULTADO] ⏳ CONTINUANDO · +XP20 · rep:+4 · Sustentação bem recebida. Processo em vista ao MP para parecer.`,
+  ],
+};
+function pick(arr,...args){return arr[rnd(arr.length)](...args)}
+function gerarCena(p,acao,sv){
+  const n=G.nome;const c=CENAS[acao]||CENAS.audiencia;const forte=sv>=55;
+  let linhas=[];
+  if(acao==='audiencia'){
+    linhas.push(pick(c.intro,p,n));
+    linhas.push(pick(c.juiz,p));
+    linhas.push(forte?pick(c.adv_forte,p,n):pick(c.adv_fraco,p,n));
+    linhas.push(pick(c.oponente,p));
+  } else if(acao==='recurso'){
+    linhas.push(pick(c.intro,p,n));
+    linhas.push(pick(c.adv,p,n));
+  } else if(acao==='acordo'){
+    linhas.push(pick(c.intro,p,n));
+    linhas.push(pick(c.adv,p,n));
+    linhas.push(pick(c.oponente,p));
+  } else {
+    linhas.push(pick(CENAS.pesquisa.intro,p,n));
+    linhas.push(pick(CENAS.pesquisa.adv,p,n));
+  }
+  // Calcular resultado por probabilidade baseada em skill
+  const h=Math.floor(sv/20); // 0-5
+  const rndVal=Math.random();
+  let resultado,pRes;
+  if(acao==='pesquisa'){resultado=pick(RESULTADOS.continuando,p);pRes=null;}
+  else if(rndVal<(0.2+sv/150)){resultado=pick(RESULTADOS.ganho,p,h);pRes='ganho';}
+  else if(rndVal>(0.85-sv/200)){resultado=pick(RESULTADOS.perdido,p);pRes='perdido';}
+  else{resultado=pick(RESULTADOS.continuando,p);pRes=null;}
+  linhas.push(resultado);
+  return{linhas,pRes};
+}
+function acaoP(id,acao){
   const p=G.procs.find(x=>x.id===id);if(!p)return;
   const log=document.getElementById('plog');
   document.querySelectorAll('.pb2').forEach(b=>b.disabled=true);
-  log.innerHTML+=`<div class="lr3"><div class="spin"></div> Processando...</div>`;
   const sm={audiencia:'oratoria',recurso:'peticao',acordo:'negociacao',pesquisa:'pesquisa'};
   const sv=G.sk[sm[acao]]||20;
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
-Narrador de jogo jurídico brasileiro. Cena CURTA (6-9 linhas) para:
-- Advogado: ${G.nome} (${cargo().label} · ${G.esp})
-- Processo: ${p.tipo} — ${p.autor} vs ${p.reu} — ${p.tribunal}
-- Peça: ${p.peca} · Fase: ${p.fase} · Ação: ${acao} · Skill ${sm[acao]}: ${sv}/100
-
-USE EXATAMENTE estes prefixos por linha:
-[SISTEMA] narração · [JUIZ] fala · [ADVOGADO] fala · [OPONENTE] fala
-[RESULTADO] GANHOU ou PERDEU ou CONTINUANDO · +XPnumero · rep:+/-numero · conclusão
-Cite artigos/súmulas reais. Dramático. Máx 200 palavras.`}]})});
-    const d=await res.json();const txt=d.content[0].text;
-    let html='';let xpG=22,repD=3,pRes=null;
-    txt.split('\n').filter(l=>l.trim()).forEach(l=>{
-      if(l.includes('[SISTEMA]'))html+=`<span class="ls">${l}</span><br>`;
-      else if(l.includes('[JUIZ]'))html+=`<span class="lj">${l}</span><br>`;
-      else if(l.includes('[ADVOGADO]'))html+=`<span class="la">${l}</span><br>`;
-      else if(l.includes('[OPONENTE]'))html+=`<span class="lo">${l}</span><br>`;
-      else if(l.includes('[RESULTADO]')){
-        html+=`<br><span class="lr">${l}</span><br>`;
-        const xM=l.match(/\+XP(\d+)/i)||l.match(/\+(\d+)\s*XP/i);if(xM)xpG=parseInt(xM[1]);
-        const rM=l.match(/rep:\s*([+-]?\d+)/i);if(rM)repD=parseInt(rM[1]);
-        if(/GANHOU/i.test(l))pRes='ganho';else if(/PERDEU/i.test(l))pRes='perdido';
-      } else html+=`<span style="color:#a8c5a8">${l}</span><br>`;
-    });
-    log.innerHTML=html;log.scrollTop=log.scrollHeight;
-    gainXP(xpG);G.rep=Math.max(0,Math.min(100,G.rep+repD));gainSk(sm[acao],sv<50?3:1);
-    if(pRes==='ganho'){G.dinheiro+=p.hon;G.wins++;G.rep=Math.min(100,G.rep+10);toast(`✅ Vitória! +${fmt(p.hon)} honorários`,'ok');p.status='ganho';finP(p.id);}
-    else if(pRes==='perdido'){G.losses++;G.rep=Math.max(0,G.rep-5);toast('❌ Encerrado desfavoravelmente.','ko');p.status='perdido';finP(p.id);}
-    else{const fs=['Petição Inicial','Contestação','Instrução','Audiência','Sentença'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
-    const bd=document.createElement('div');bd.style.cssText='display:flex;gap:.42rem;margin-top:.85rem';
-    bd.innerHTML=`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
-      ${!pRes?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${p.id}'))">Nova ação</button>`:''}`;
-    log.parentElement.appendChild(bd);updTb();updR();
-  }catch(e){log.innerHTML+='<span style="color:#ff8096">Erro. Tente novamente.</span>';document.querySelectorAll('.pb2').forEach(b=>b.disabled=false);}
+  const{linhas,pRes}=gerarCena(p,acao,sv);
+  let html='';let xpG=18,repD=3;
+  linhas.forEach(l=>{
+    if(l.includes('[SISTEMA]'))html+=`<span class="ls">${l}</span><br>`;
+    else if(l.includes('[JUIZ]'))html+=`<span class="lj">${l}</span><br>`;
+    else if(l.includes('[ADVOGADO]'))html+=`<span class="la">${l}</span><br>`;
+    else if(l.includes('[OPONENTE]'))html+=`<span class="lo">${l}</span><br>`;
+    else if(l.includes('[RESULTADO]')){
+      html+=`<br><span class="lr">${l}</span><br>`;
+      const xM=l.match(/\+XP(\d+)/i);if(xM)xpG=parseInt(xM[1]);
+      const rM=l.match(/rep:([+-]?\d+)/i);if(rM)repD=parseInt(rM[1]);
+    }
+  });
+  log.innerHTML=html;log.scrollTop=log.scrollHeight;
+  gainXP(xpG);G.rep=Math.max(0,Math.min(100,G.rep+repD));gainSk(sm[acao],sv<50?3:1);
+  if(pRes==='ganho'){G.dinheiro+=p.hon;G.wins++;G.rep=Math.min(100,G.rep+10);toast(`✅ Vitória! +${fmt(p.hon)} honorários`,'ok');p.status='ganho';finP(p.id);}
+  else if(pRes==='perdido'){G.losses++;G.rep=Math.max(0,G.rep-5);toast('❌ Encerrado desfavoravelmente.','ko');p.status='perdido';finP(p.id);}
+  else{const fs=['Petição Inicial','Contestação','Instrução','Audiência','Sentença'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
+  const bd=document.createElement('div');bd.style.cssText='display:flex;gap:.42rem;margin-top:.85rem';
+  bd.innerHTML=`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem" onclick="cM('pm');sw('processos')">Voltar</button>
+    ${!pRes?`<button class="bp" style="margin:0;flex:1;padding:.46rem;font-size:.78rem;background:var(--vc);color:var(--cr)" onclick="rAcoesP(G.procs.find(x=>x.id==='${p.id}'))">Nova ação</button>`:''}`;
+  log.parentElement.appendChild(bd);updTb();updR();
 }
 function finP(id){const i=G.procs.findIndex(x=>x.id===id);if(i<0)return;G.prfin.push(G.procs[i]);G.procs.splice(i,1);}
 
@@ -870,30 +964,90 @@ function trnSk(k){
   rSkills(document.getElementById('cp'));
 }
 
-// ── OAB ──
-async function inicOAB(){
+// ── OAB — banco de questões estático por especialização ──
+const BANCO_OAB={
+  tributario:[
+    {q:'Nos Embargos à Execução Fiscal (LEF art. 16), o prazo para oposição é de:',opts:['A) 5 dias após a citação','B) 30 dias após a garantia do juízo','C) 15 dias úteis','D) 10 dias corridos'],c:1,e:'LEF art. 16 §1º: os embargos devem ser opostos no prazo de 30 dias contados da intimação da penhora ou do depósito.'},
+    {q:'A Exceção de Pré-Executividade é cabível quando:',opts:['A) Sempre que o executado preferir não oferecer garantia','B) Há vício manifesto e cognoscível de ofício, independente de dilação probatória','C) O crédito for superior a 60 salários mínimos','D) O devedor for pessoa jurídica'],c:1,e:'STJ Súmula 393: é cabível para matérias cognoscíveis de ofício (prescrição, ilegitimidade), desde que a prova seja pré-constituída.'},
+    {q:'O prazo prescricional para a Repetição de Indébito tributário (CTN art. 168) é de:',opts:['A) 2 anos do pagamento','B) 10 anos do lançamento','C) 5 anos a contar da extinção do crédito tributário','D) 3 anos da notificação do contribuinte'],c:2,e:'CTN art. 168, I: o direito de pleitear a restituição extingue-se em 5 anos, contados da data da extinção do crédito tributário.'},
+    {q:'Sobre a compensação tributária, é CORRETO afirmar:',opts:['A) Independe de autorização legal específica','B) Pode ser feita com créditos de terceiros','C) Depende de lei autorizativa e sujeita-se à homologação tácita ou expressa','D) Extingue definitivamente o crédito no momento do pedido'],c:2,e:'CTN art. 170: a compensação é autorizada por lei e sujeita-se à homologação. O pedido não suspende a exigibilidade (STJ Tema 259).'},
+    {q:'O lançamento por homologação (CTN art. 150) ocorre quando:',opts:['A) A autoridade fiscal calcula o tributo de ofício','B) O sujeito passivo antecipa o pagamento sem prévio exame da autoridade','C) O Fisco homologa o lançamento antes do vencimento','D) Há acordo entre Fisco e contribuinte'],c:1,e:'CTN art. 150: o sujeito passivo antecipa o pagamento, e a extinção do crédito fica condicionada à homologação posterior pelo Fisco (prazo de 5 anos).'},
+  ],
+  trabalhista:[
+    {q:'O prazo prescricional para ajuizar reclamação trabalhista após a extinção do contrato é:',opts:['A) 5 anos, limitado a 2 anos do término','B) 2 anos após a extinção do contrato de trabalho','C) 30 dias da demissão','D) 1 ano do último ato lesivo'],c:1,e:'CF art. 7º XXIX: prazo de 2 anos após a extinção do contrato, com créditos dos últimos 5 anos. CLT art. 11 confirma.'},
+    {q:'A Súmula Vinculante 22 do STF estabelece que:',opts:['A) TJ tem competência para acidentes de trabalho','B) JT tem competência para julgar ações de indenização por acidente de trabalho','C) JF julga acidente de trabalho envolvendo a União','D) A competência depende da natureza do vínculo'],c:1,e:'SV 22 STF: a Justiça do Trabalho é competente para processar e julgar as ações de indenização por danos morais e patrimoniais decorrentes de acidente de trabalho.'},
+    {q:'Sobre a equiparação salarial (CLT art. 461), é CORRETO afirmar:',opts:['A) Exige apenas mesma função e mesmo empregador','B) Requer identidade de função, empregador, localidade e trabalho de igual valor (mesma produtividade e perfeição técnica)','C) O paradigma deve ter menos de 5 anos de serviço','D) Aplica-se entre empresas do mesmo grupo econômico'],c:1,e:'CLT art. 461: identidade de função, empregador, localidade, trabalho de igual valor (§1º) e diferença de tempo na função não superior a 4 anos (§4º - reforma 2017).'},
+    {q:'O vínculo empregatício exige, cumulativamente:',opts:['A) Exclusividade, pessoalidade, subordinação e salário','B) Pessoalidade, não-eventualidade, onerosidade e subordinação jurídica','C) Exclusividade, habitualidade, remuneração e controle de jornada','D) Pessoalidade, continuidade, salário e obediência'],c:1,e:'CLT art. 3º: os elementos são pessoalidade, não-eventualidade (habitualidade), onerosidade (salário) e subordinação jurídica. Exclusividade não é requisito.'},
+    {q:'O prazo para pagamento das verbas rescisórias após aviso prévio indenizado é:',opts:['A) 10 dias corridos','B) 30 dias da extinção','C) Até o 10º dia corrido a partir do término do contrato','D) No ato da assinatura da rescisão'],c:2,e:'CLT art. 477 §6º, b: o pagamento deve ser feito até o décimo dia corrido a partir da notificação de dispensa. Multa de um salário pelo atraso (§8º).'},
+  ],
+  civil:[
+    {q:'A tutela de urgência antecipada (CPC art. 300) tem como requisitos:',opts:['A) Fumus boni iuris e periculum in mora','B) Elementos que evidenciem a probabilidade do direito e o perigo de dano ou risco ao resultado útil do processo','C) Prova inequívoca e verossimilhança','D) Caução obrigatória e requerimento da parte'],c:1,e:'CPC art. 300: basta a probabilidade do direito (não certeza) + perigo de dano ou risco ao resultado útil. O CPC/2015 unificou as tutelas de urgência.'},
+    {q:'A prescrição da pretensão de reparação civil (responsabilidade extracontratual) é de:',opts:['A) 10 anos','B) 5 anos','C) 3 anos','D) 2 anos'],c:2,e:'CC art. 206 §3º V: prescreve em 3 anos a pretensão de reparação civil. Difere do prazo geral de 10 anos (art. 205).'},
+    {q:'O prazo para oposição de embargos à execução de título extrajudicial (CPC art. 915) é:',opts:['A) 5 dias da penhora','B) 15 dias úteis a partir da juntada do mandado de citação','C) 30 dias da citação','D) 10 dias corridos da intimação'],c:1,e:'CPC art. 915: o executado oporá embargos à execução no prazo de 15 dias, contado da data da juntada aos autos do mandado de citação.'},
+    {q:'Sobre o condomínio edilício, a responsabilidade pelas despesas é:',opts:['A) Proporcional ao número de moradores','B) Igualitária entre todas as unidades','C) Proporcional à fração ideal de cada unidade, salvo convenção em contrário','D) Definida pela assembleia caso a caso'],c:2,e:'CC art. 1.336 I: o condômino deve contribuir para as despesas do condomínio na proporção de suas frações ideais, salvo disposição diversa na convenção.'},
+    {q:'A ação reivindicatória (CC art. 1.228) destina-se a:',opts:['A) Recuperar a posse de bem imóvel','B) Reaver o bem de quem injustamente o possua ou detenha — pressupõe propriedade e posse injusta do réu','C) Discutir vícios do título de propriedade','D) Declarar usucapião'],c:1,e:'CC art. 1.228: o proprietário tem a faculdade de reivindicar o bem de quem quer que injustamente o possua ou detenha. Exige prova da propriedade (não apenas posse).'},
+  ],
+  criminal:[
+    {q:'O Habeas Corpus (CF art. 5º LXVIII) é cabível para:',opts:['A) Qualquer ilegalidade praticada contra réu','B) Proteger a liberdade de locomoção ameaçada ou violada por ilegalidade ou abuso de poder','C) Anular provas ilícitas no processo penal','D) Suspender a execução de sentença condenatória'],c:1,e:'CF art. 5º LXVIII: HC é remédio constitucional para proteger a liberdade de locomoção (ir, vir, permanecer). Não se presta para impugnar provas ou anular atos não restritivos.'},
+    {q:'A Resposta à Acusação (CPP art. 396-A) deve ser apresentada no prazo de:',opts:['A) 5 dias da citação','B) 10 dias após a notificação do recebimento da denúncia','C) 15 dias úteis','D) 30 dias da citação'],c:1,e:'CPP art. 396-A: após o recebimento da denúncia ou queixa, o juiz notificará o acusado para responder à acusação no prazo de 10 dias.'},
+    {q:'O flagrante preparado (provocado) gera:',opts:['A) Prisão válida e processo regular','B) Nulidade absoluta — crime impossível por induzimento (Súmula 145 STF)','C) Atenuante da pena para o acusado','D) Excludente de ilicitude'],c:1,e:'Súmula 145 STF: não há crime quando a preparação do flagrante pela polícia torna impossível a sua consumação. O crime impossível (CP art. 17) gera atipicidade.'},
+    {q:'Sobre o princípio da insignificância, são requisitos (STF):',opts:['A) Valor mínimo do bem e arrependimento do agente','B) Mínima ofensividade, ausência de periculosidade, reduzido grau de reprovabilidade e inexpressividade da lesão','C) Primariedade e valor abaixo de 1 salário mínimo','D) Consenso entre MP e defesa'],c:1,e:'STF HC 84.412: os vetores são (1) mínima ofensividade da conduta, (2) nenhuma periculosidade social, (3) reduzidíssimo grau de reprovabilidade, (4) inexpressividade da lesão.'},
+    {q:'A delação premiada (Lei 12.850/13) é acordo entre:',opts:['A) Réu e vítima, homologado pelo juiz','B) Colaborador e MP/Delegado, homologado pelo juiz competente','C) Advogado e Promotor, sem intervenção judicial','D) Réu e juiz, com anuência do MP'],c:1,e:'Lei 12.850/13 art. 4º: o Delegado ou o MP negocia com o investigado/acusado, o acordo é firmado com o defensor e submetido à homologação judicial.'},
+  ],
+  empresarial:[
+    {q:'Na Recuperação Judicial (Lei 11.101/05), o prazo para o devedor apresentar o Plano de Recuperação é de:',opts:['A) 30 dias do deferimento','B) 60 dias do deferimento do processamento','C) 90 dias da aprovação pelos credores','D) 180 dias — igual ao stay period'],c:1,e:'Lei 11.101/05 art. 53: o devedor terá o prazo improrrogável de 60 dias, contado do deferimento do processamento da recuperação, para apresentar o plano.'},
+    {q:'O stay period na Recuperação Judicial suspende:',opts:['A) Apenas execuções fiscais','B) Todas as ações e execuções contra o devedor por 180 dias (prorrogável por igual período)','C) Somente dívidas trabalhistas','D) Apenas ações cíveis — execuções prosseguem'],c:1,e:'Lei 11.101/05 art. 6º: deferido o processamento, haverá suspensão das ações e execuções pelo prazo de 180 dias, prorrogável por igual período (§4º-A).'},
+    {q:'São credores que não se submetem à Recuperação Judicial:',opts:['A) Credores quirografários e trabalhistas','B) Créditos fiscais, credores de adiantamento de câmbio e alienação fiduciária (no que couber)','C) Apenas credores com garantia real','D) Todos os credores com créditos superiores a 100 salários mínimos'],c:1,e:'Lei 11.101/05 art. 49 §3º: créditos de natureza fiduciária, arrendamento mercantil, adiantamento de câmbio e outros não se sujeitam à recuperação. Fisco também não (CTN art. 187).'},
+    {q:'A desconsideração da personalidade jurídica (CC art. 50) exige:',opts:['A) Simples insolvência da empresa','B) Desvio de finalidade ou confusão patrimonial (teoria maior)','C) Qualquer prejuízo ao credor','D) Encerramento irregular da empresa'],c:1,e:'CC art. 50 (teoria maior): exige abuso da personalidade caracterizado por desvio de finalidade ou confusão patrimonial. Mera insolvência não basta (STJ REsp 1.325.663).'},
+    {q:'O Administrador Judicial na Recuperação Judicial é nomeado pelo:',opts:['A) Comitê de Credores','B) Juízo da recuperação no momento do deferimento','C) Assembleia Geral de Credores','D) Devedor em lista tríplice'],c:1,e:'Lei 11.101/05 art. 21: o juiz nomeará o administrador judicial no momento do deferimento do processamento. A assembleia pode destituí-lo (art. 30).'},
+  ],
+  constitucional:[
+    {q:'A cláusula de reserva de plenário (CF art. 97) exige que a declaração de inconstitucionalidade ocorra:',opts:['A) Por maioria simples de qualquer câmara','B) Pelo voto da maioria absoluta do tribunal pleno ou do órgão especial','C) Por unanimidade do tribunal','D) Apenas pelo STF em controle concentrado'],c:1,e:'CF art. 97 + SV 10 STF: somente pelo voto da maioria absoluta dos membros do tribunal pleno ou órgão especial. Turma ou câmara não pode declarar inconstitucionalidade.'},
+    {q:'A Ação Direta de Inconstitucionalidade (ADI) tem legitimidade ativa prevista no:',opts:['A) CPC art. 977','B) CF art. 103 — rol taxativo de 9 legitimados','C) Lei 9.868/99 art. 2º — qualquer interessado','D) CF art. 5º LXIX — qualquer cidadão'],c:1,e:'CF art. 103: legitimados são o PR, Mesa do SF, Mesa da CD, Mesa de AL, Governador, PGR, CFN, partido político com representação no CN e confederação sindical/entidade de classe nacional.'},
+    {q:'O mandado de segurança coletivo pode ser impetrado por:',opts:['A) Qualquer grupo de pessoas prejudicadas','B) Partido político com representação no CN, organização sindical, entidade de classe ou associação com mais de 1 ano de constituição','C) MP em nome dos interessados','D) Apenas sindicatos legalmente constituídos'],c:1,e:'CF art. 5º LXX: partido político (qualquer bancada no CN) e organizações sindicais, entidades de classe ou associações legalmente constituídas e em funcionamento há pelo menos 1 ano.'},
+    {q:'A imunidade tributária recíproca (CF art. 150 VI a) proíbe:',opts:['A) Qualquer tributo entre os entes federativos','B) União, Estados, DF e Municípios de instituir impostos sobre patrimônio, renda ou serviços uns dos outros','C) Qualquer cobrança de taxas entre entes federativos','D) Somente a cobrança de ICMS e ISS entre entes'],c:1,e:'CF art. 150 VI, a: veda instituir impostos (não todos os tributos) sobre patrimônio, renda ou serviços dos entes federativos. Estende-se a autarquias e fundações (§2º).'},
+    {q:'O Habeas Data (CF art. 5º LXXII) destina-se a:',opts:['A) Proteger qualquer dado pessoal contra divulgação','B) Assegurar conhecimento de informações pessoais de registros de entidades governamentais e retificá-las','C) Garantir acesso a informações de interesse coletivo','D) Impugnar cadastro negativo de crédito privado'],c:1,e:'CF art. 5º LXXII: HD assegura conhecimento de informações relativas à pessoa do impetrante constantes de registros de entidades GOVERNAMENTAIS ou de caráter público, e sua retificação.'},
+  ],
+  ambiental:[
+    {q:'A responsabilidade civil por dano ambiental no Brasil é:',opts:['A) Subjetiva — exige dolo ou culpa','B) Objetiva — dispensa comprovação de culpa, bastando o nexo causal (Lei 6.938/81 art. 14 §1º)','C) Solidária apenas entre pessoas jurídicas','D) Limitada ao valor do seguro ambiental contratado'],c:1,e:'Lei 6.938/81 art. 14 §1º: responsabilidade objetiva pelo dano ambiental — basta nexo causal entre a atividade e o dano. STJ: imprescritibilidade dos danos ambientais.'},
+    {q:'O Estudo de Impacto Ambiental (EIA) é exigido constitucionalmente para:',opts:['A) Qualquer obra de infraestrutura','B) Instalação de obra ou atividade potencialmente causadora de significativa degradação do meio ambiente','C) Atividades rurais em APP','D) Construções acima de 5.000 m²'],c:1,e:'CF art. 225 §1º IV: para instalação de obra ou atividade potencialmente causadora de significativa degradação do meio ambiente, exige-se EIA/RIMA, na forma da lei.'},
+    {q:'A Área de Preservação Permanente (APP) tem proteção prevista no:',opts:['A) Decreto 6.514/2008','B) Código Florestal (Lei 12.651/12) arts. 4º e 5º','C) Resolução CONAMA 303/2002 (ainda vigente integralmente)','D) Lei 6.938/81 art. 9º'],c:1,e:'Novo Código Florestal (Lei 12.651/12) arts. 4º e 5º: definem as APPs legais (margens de rios, topos de morro, etc.) e as APPs por ato do Poder Público.'},
+    {q:'A desconsideração da personalidade jurídica em dano ambiental ocorre:',opts:['A) Apenas se comprovado desvio de finalidade','B) Quando for obstáculo ao ressarcimento — teoria menor (Lei 9.605/98 art. 4º)','C) Somente após falência da empresa','D) Exige procedimento próprio de incidente (CPC art. 133)'],c:1,e:'Lei 9.605/98 art. 4º: adota a teoria menor da desconsideração — basta que a personalidade jurídica seja obstáculo ao ressarcimento dos prejuízos causados à qualidade ambiental.'},
+    {q:'A competência para licenciamento ambiental federal (IBAMA) abrange:',opts:['A) Toda e qualquer atividade poluidora','B) Empreendimentos com impacto ambiental de âmbito nacional ou transfronteiriço (LC 140/2011)','C) Atividades rurais acima de 1.000 hectares','D) Qualquer obra federal independente do impacto'],c:1,e:'LC 140/2011: o IBAMA licencia empreendimentos e atividades de impacto ambiental nacional ou transfronteiriço (art. 7º XIV). Estados e municípios têm competências próprias.'},
+  ],
+  previdenciario:[
+    {q:'O benefício de auxílio por incapacidade temporária (antes auxílio-doença) requer carência de:',opts:['A) 12 contribuições mensais','B) 12 contribuições mensais (salvo acidente e doenças da lista especial — carência zero)','C) 24 contribuições mensais','D) 6 contribuições mensais'],c:1,e:'Lei 8.213/91 art. 25 I: carência de 12 contribuições. Exceção (art. 26): acidente de qualquer natureza, doenças especificadas em lista do MPAS e morte — carência zero.'},
+    {q:'A aposentadoria por incapacidade permanente (antiga invalidez) exige:',opts:['A) 12 contribuições e incapacidade total e permanente','B) Carência de 12 contribuições (com exceções), incapacidade total e permanente e impossibilidade de reabilitação','C) 180 contribuições e laudo pericial','D) 5 anos de contribuição ininterrupta'],c:1,e:'Lei 8.213/91 arts. 42-47: incapacidade para o trabalho e para atividade que garanta subsistência, insusceptível de reabilitação. Carência: 12 meses (com exceções do art. 26).'},
+    {q:'O período de graça (manutenção da qualidade de segurado sem contribuição) é de:',opts:['A) 6 meses para todos os segurados','B) 12 meses após cessação das contribuições (podendo estender a 24 ou 36 meses conforme condições)','C) 24 meses uniformemente','D) Indefinido para segurado com mais de 120 contribuições'],c:1,e:'Lei 8.213/91 art. 15: 12 meses (regra geral), 24 meses (segurado desempregado com mais de 120 contribuições), 36 meses (em caso de incapacidade para o trabalho do segurado) .'},
+    {q:'A competência para julgar causas previdenciárias até 60 salários mínimos é dos:',opts:['A) Tribunais de Justiça Estaduais','B) Juizados Especiais Federais (JEF) — Lei 10.259/2001','C) TJDF para o Distrito Federal','D) Varas cíveis comuns'],c:1,e:'Lei 10.259/2001: os JEFs têm competência para causas de até 60 salários mínimos contra a União, autarquias, fundações e empresas públicas federais (inclui INSS).'},
+    {q:'O RGPS é administrado pelo INSS e financia-se com contribuições de:',opts:['A) Apenas empregados e empregadores','B) Segurados, empregadores, sobre a receita de concursos de prognósticos e importações (CF art. 195)','C) Apenas folha de salários','D) Contribuições exclusivas da União'],c:1,e:'CF art. 195: seguridade social financiada por toda a sociedade — empregado, empregador (folha, faturamento, lucro), concursos de prognósticos e importação (EC 42/2003).'},
+  ],
+};
+function getBancoOAB(esp){return BANCO_OAB[esp]||BANCO_OAB.civil;}
+function getBancoConc(career,esp){
+  // Questões específicas por cargo + gerais de processo
+  const gerais=[
+    {q:'Sobre garantias constitucionais das carreiras de Estado, é CORRETO:',opts:['A) Vitaliciedade adquirida na posse','B) Inamovibilidade relativa — cede ao interesse público comprovado','C) Irredutibilidade de subsídio isenta de imposto de renda','D) Autonomia funcional afasta controle externo','E) Estágio probatório de 1 ano'],c:1,e:'CF art. 95 e 128: inamovibilidade é garantia relativa (remoção por interesse público, por 2/3 do CN ou CM). Vitaliciedade: 2 anos de exercício.'},
+    {q:'Sobre o controle de constitucionalidade concentrado no Brasil:',opts:['A) Qualquer pessoa pode propor ADI','B) Declaração de inconstitucionalidade exige maioria absoluta do pleno (reserva de plenário)','C) ADI produz efeitos ex nunc como regra','D) Controle difuso produz efeitos erga omnes','E) ADPF e ADI possuem os mesmos legitimados'],c:1,e:'CF art. 97 (SV 10): reserva de plenário. ADI: efeitos ex tunc como regra, erga omnes, eficácia contra todos. Difuso: inter partes.'},
+    {q:'A prescrição intercorrente na execução civil (CPC art. 921 §4º) configura-se:',opts:['A) Não existe no processo civil','B) Apenas no processo penal','C) Após 1 ano de suspensão por não localização do devedor + inércia por 5 anos','D) Exige intimação pessoal prévia do exequente','E) Fazenda Pública é imune à prescrição intercorrente'],c:2,e:'CPC art. 921 §4º + STJ Tema 566: 1 ano de suspensão, depois começa correr o prazo de 5 anos. Aplicável à Fazenda (STJ Tema 1.120).'},
+    {q:'Após a Lei 14.230/2021, a improbidade administrativa exige:',opts:['A) Culpa grave é suficiente','B) Dolo específico como elemento subjetivo indispensável','C) Pessoa jurídica não pode figurar como ré','D) Admite transação penal','E) MP perdeu a legitimidade ativa exclusiva'],c:1,e:'Lei 14.230/2021 art. 1º §1º: exige dolo específico (não culpa). MP tem legitimidade exclusiva (art. 17 §14). PJ pode ser ré (art. 3º).'},
+    {q:'O controle judicial do ato administrativo discricionário:',opts:['A) O Judiciário pode substituir o mérito administrativo','B) Limita-se à legalidade formal','C) Abrange legalidade, proporcionalidade e razoabilidade, sem substituir o mérito','D) MP não tem legitimidade para questioná-lo','E) Discricionariedade administrativa é imune a controle'],c:2,e:'STF RE 632.853 + doutrina: controle de legalidade inclui proporcionalidade e razoabilidade (juridicização do mérito), mas não substitui a opção administrativa legítima.'},
+    {q:'Sobre prescrição e decadência no CC/2002:',opts:['A) Prescrição extingue o próprio direito subjetivo','B) Decadência pode ser renunciada pelo devedor após a consumação','C) Decadência extingue o direito; prescrição extingue a pretensão (art. 189)','D) Prescrição é reconhecida de ofício pelo juiz em qualquer caso','E) Decadência convencional é proibida pelo CC'],c:2,e:'CC art. 189: prescrição extingue a pretensão. CC art. 207: à decadência não se aplicam as normas que impedem, suspendem ou interrompem a prescrição (extingue o direito).'},
+  ];
+  // complementar com banco do esp
+  const banco=getBancoOAB(esp)||[];
+  return [...gerais.slice(0,3),...banco.slice(0,3)];
+}
+function inicOAB(){
   if(G.sk.tecnica<45||G.sk.pesquisa<40){toast('Habilidades insuficientes.','ko');return;}
   document.getElementById('exh').textContent='Prova da OAB — 1ª e 2ª Fase';
-  document.getElementById('exs').textContent='5 questões · Aprovação: 60%';
-  document.getElementById('exbd').innerHTML='<div class="lr3"><div class="spin"></div> Gerando questões...</div>';
+  document.getElementById('exs').textContent='5 questões · Aprovação: 60% · Boa sorte!';
+  const banco=getBancoOAB(G.esp);
+  // Embaralhar e pegar 5 questões
+  const shuffled=[...banco].sort(()=>Math.random()-.5).slice(0,5);
+  exSt={qs:shuffled,i:0,ac:0,tipo:'oab'};
   document.getElementById('exam').classList.remove('h');
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
-Gere 5 questões difíceis de OAB sobre ${G.esp}. JSON puro sem markdown:
-[{"q":"enunciado","opts":["A) ...","B) ...","C) ...","D) ..."],"c":0,"e":"explicação com base legal"}]
-c=índice 0-3. Lei e jurisprudência brasileira reais. Nível OAB 2ª fase.`}]})});
-    const d=await res.json();
-    exSt={qs:JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim()),i:0,ac:0,tipo:'oab'};renderExQ();
-  }catch(e){
-    exSt={qs:[
-      {q:`Em ${G.esp}, o prazo geral para interposição de recurso no CPC/2015 é:`,opts:['A) 10 dias úteis','B) 15 dias úteis','C) 30 dias corridos','D) 5 dias úteis'],c:1,e:'CPC art. 1.003 §5º: 15 dias úteis.'},
-      {q:'A reserva de plenário (CF art. 97) exige para declarar inconstitucionalidade:',opts:['A) Maioria simples de qualquer turma','B) Maioria absoluta do pleno ou órgão especial','C) Unanimidade dos membros','D) Só o relator'],c:1,e:'CF art. 97 + SV 10 STF: maioria absoluta do tribunal (full bench).'},
-      {q:'O prazo prescricional geral do Código Civil é:',opts:['A) 3 anos','B) 5 anos','C) 10 anos','D) 15 anos'],c:2,e:'CC art. 205: 10 anos quando não houver prazo especial.'},
-      {q:'Tutela de urgência antecipada (CPC art. 300) requer:',opts:['A) Sempre caução','B) Probabilidade do direito e perigo de dano','C) Só após contestação','D) É irrecorrível'],c:1,e:'CPC art. 300: probabilidade do direito + perigo de dano ou risco ao resultado útil.'},
-      {q:'Súmula Vinculante possui efeito:',opts:['A) Apenas inter partes','B) Só para tribunais superiores','C) Erga omnes e vinculante ao Judiciário e Administração','D) Só para o STF'],c:2,e:'CF art. 103-A: eficácia para todo o Judiciário e Administração Pública.'},
-    ],i:0,ac:0,tipo:'oab'};renderExQ();
-  }
+  renderExQ();
 }
 
 // ── CONCURSO ──
@@ -925,30 +1079,13 @@ function rConc(cp){
     </div>`;
   }
 }
-async function inicConc(){
+function inicConc(){
   document.getElementById('exh').textContent=CAREERS[G.career].cl;
   document.getElementById('exs').textContent='6 questões difíceis · Aprovação: 60%';
-  document.getElementById('exbd').innerHTML='<div class="lr3"><div class="spin"></div> Gerando prova...</div>';
+  const qs=getBancoConc(G.career,G.esp).sort(()=>Math.random()-.5).slice(0,6);
+  exSt={qs,i:0,ac:0,tipo:'concurso'};
   document.getElementById('exam').classList.remove('h');
-  const cl={juiz:'Magistratura',promotor:'Ministério Público',defensor:'Defensoria Pública'}[G.career];
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`
-6 questões MUITO DIFÍCEIS de concurso para ${cl}, área ${G.esp}. Estilo CESPE/FCC.
-JSON puro: [{"q":"enunciado","opts":["A)...","B)...","C)...","D)...","E)..."],"c":0,"e":"explicação doutrinária"}]
-c=índice 0-4. Súmulas STF/STJ, doutrina, legislação atualizada. Nível aprovados reais.`}]})});
-    const d=await res.json();
-    exSt={qs:JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim()),i:0,ac:0,tipo:'concurso'};renderExQ();
-  }catch(e){
-    exSt={qs:[
-      {q:`Para ${cl}: sobre garantias constitucionais, é CORRETO:`,opts:['A) Vitaliciedade na posse','B) Inamovibilidade relativa, cedendo ao interesse público','C) Irredutibilidade sem tributação','D) Autonomia sem controle','E) Estágio de 1 ano'],c:1,e:'CF art. 95: inamovibilidade é relativa (art. 93 VIII). Vitaliciedade: 2 anos.'},
-      {q:'Sobre controle de constitucionalidade:',opts:['A) Qualquer pessoa propõe ADI','B) Declaração de inconstitucionalidade exige maioria absoluta (reserva de plenário)','C) ADI tem efeito sempre ex nunc','D) Controle difuso produz efeitos erga omnes','E) ADPF e ADI têm mesma legitimidade'],c:1,e:'CF art. 97 + CPC 948. ADI: efeitos ex tunc; erga omnes. Difuso: inter partes.'},
-      {q:'Prescrição intercorrente na execução civil (CPC art. 921):',opts:['A) Não existe','B) Só no penal','C) Após 1 ano suspenso + 5 anos sem localizar devedor','D) Exige intimação prévia','E) Fazenda é imune'],c:2,e:'CPC art. 921 §4º: 1 ano de suspensão + 5 anos = prescrição intercorrente. STJ Tema 566.'},
-      {q:'Após Lei 14.230/2021, improbidade administrativa exige:',opts:['A) Culpa grave é suficiente','B) Dolo específico','C) PJ não pode ser ré','D) Transação penal admissível','E) MP perdeu legitimidade'],c:1,e:'Lei 14.230/2021 art. 1º §1º: dolo específico. MP legitimidade exclusiva (§14).'},
-      {q:'Controle judicial do ato administrativo discricionário:',opts:['A) Judiciário substitui o mérito','B) Só controla legalidade formal','C) Abrange legalidade + proporcionalidade, sem substituir o mérito','D) MP não pode questionar','E) Discricionariedade é plena'],c:2,e:'Doutrina majoritária + STF RE 632.853: controle abrange proporcionalidade, mas não substitui o mérito.'},
-      {q:'Diferença entre prescrição e decadência no CC/2002:',opts:['A) Prescrição extingue o direito','B) Ambas são de ofício','C) Decadência extingue o direito; prescrição extingue a pretensão','D) Prescrição não pode ser de ofício','E) Decadência convencional é proibida'],c:2,e:'CC art. 189: prescrição extingue a pretensão. Art. 207: decadência extingue o direito. Art. 210: decadência legal de ofício.'},
-    ],i:0,ac:0,tipo:'concurso'};renderExQ();
-  }
+  renderExQ();
 }
 
 // ── EXAM ENGINE ──
@@ -1137,46 +1274,97 @@ async function advW(){
   }
   G.procs.forEach(p=>{if(p.audsem===G.sg&&!G.audpend.includes(p.id)){noticia(`🔴 Audiência HOJE: ${p.tipo} — ${p.autor} vs ${p.reu}`,'urgente');G.audpend.push(p.id);}});
   G.audpend=G.audpend.filter(id=>G.procs.some(p=>p.id===id));
-  if(Math.random()<.52)await evSem();
+  if(Math.random()<.52)evSem();
   if(Math.random()<.18&&G.procs.length<9){G.procs.push(mkProc());noticia(`📁 Novo caso: ${G.procs[G.procs.length-1].tipo}`,'positivo');}
   updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar semana';
   const a=document.querySelector('.ni.on');if(a)sw(a.dataset.p);
 }
-async function evSem(){
-  const ts=['nova_lei','decisao_stj','oportunidade','risco','mercado'];const tp=ts[rnd(ts.length)];
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:`
-Jogo jurídico. Evento semanal para ${G.nome} (${cargo().label} · ${G.esp}). Tipo: ${tp} · ${MN[G.mes]}/${G.ano}
-JSON puro: {"t":"título","d":"1-2 frases sobre ${G.esp}","tn":"urgente|positivo|neutro","ef":"dinheiro|reputacao|habilidade|nenhum","ve":numero,"se":"peticao|oratoria|pesquisa|negociacao|tecnica|gestao|networking|pressao|null"}
-Mencione legislação/jurisprudência brasileira.`}]})});
-    const data=await res.json();const ev=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
-    noticia(`<b>${ev.t}</b>: ${ev.d}`,ev.tn);
-    if(ev.ef==='dinheiro'&&ev.ve){G.dinheiro+=ev.ve;if(ev.ve>0)toast(`💰 ${ev.t}: +${fmt(ev.ve)}`,'ok');}
-    else if(ev.ef==='reputacao'&&ev.ve)G.rep=Math.max(0,Math.min(100,G.rep+ev.ve));
-    else if(ev.ef==='habilidade'&&ev.se&&ev.se!=='null'&&G.sk[ev.se]!==undefined)G.sk[ev.se]=Math.min(100,G.sk[ev.se]+(ev.ve||3));
-    gainXP(4);
-  }catch(e){
-    const fb=[{t:`STJ — nova tese em ${G.esp}`,n:'positivo'},{t:'Reforma tributária em debate',n:'neutro'},{t:'CARF suspende sessões',n:'urgente'},{t:'Novo cliente indicado',n:'positivo'}];
-    const f=fb[rnd(fb.length)];noticia(f.t,f.n);if(f.n==='positivo'){gainXP(4);G.rep=Math.min(100,G.rep+2);}
-  }
+// ══ EVENTO SEMANAL DETERMINÍSTICO ══
+const EVENTOS_ESP={
+  tributario:[
+    {t:'STJ — Afetação de tese tributária',d:'O STJ afetou ao rito dos recursos repetitivos nova tese sobre exclusão do ICMS da base de cálculo do PIS/COFINS, gerando expectativa nos contribuintes.',tn:'positivo',ef:'reputacao',ve:3},
+    {t:'CARF retoma julgamentos presenciais',d:'O Conselho Administrativo de Recursos Fiscais retoma sessões presenciais, acelerando julgamentos de autos de infração de grande valor.',tn:'neutro',ef:'nenhum',ve:0},
+    {t:'Novo cliente — autuação milionária',d:'Empresa de médio porte busca seu escritório após receber auto de infração de ICMS no valor de R$4,2 milhões. Urgência na defesa administrativa.',tn:'positivo',ef:'dinheiro',ve:8000},
+    {t:'STF — Julgamento de modulação de efeitos',d:'O STF decidirá sobre modulação de efeitos em caso tributário relevante para sua área de atuação. Clientes aguardam a decisão com ansiedade.',tn:'urgente',ef:'nenhum',ve:0},
+    {t:'Reforma tributária — LC 214/2025',d:'A regulamentação da LC 214/2025 (CBS, IBS e IS) publicou novo decreto esclarecendo incidências controversas. Seus clientes precisam de orientação.',tn:'positivo',ef:'habilidade',ve:4,se:'tecnica'},
+    {t:'Receita Federal — Malha fiscal',d:'Novo cruzamento de dados da RFB identificou inconsistências em declarações de clientes. Regularização preventiva recomendada.',tn:'urgente',ef:'dinheiro',ve:5000},
+    {t:'TRF-2 favorável à sua tese',d:'A 4ª Turma do TRF-2 reafirmou tese favorável ao contribuinte em caso análogo ao que você está defendendo. Excelente precedente.',tn:'positivo',ef:'reputacao',ve:5},
+  ],
+  trabalhista:[
+    {t:'TST — Nova orientação jurisprudencial',d:'O TST editou nova Orientação Jurisprudencial sobre responsabilidade subsidiária em terceirização, impactando casos em andamento.',tn:'neutro',ef:'habilidade',ve:3,se:'tecnica'},
+    {t:'Audiência de conciliação exitosa',d:'Dois processos foram conciliados em audiência prévia, gerando honorários antecipados e satisfação dos clientes.',tn:'positivo',ef:'dinheiro',ve:12000},
+    {t:'Reforma CLT — Portaria Ministerial',d:'Nova portaria do MTE regulamenta teletrabalho e jornada híbrida, criando demanda por revisão de contratos de clientes.',tn:'positivo',ef:'dinheiro',ve:4000},
+    {t:'Greve em cliente estratégico',d:'Uma empresa cliente enfrenta greve dos funcionários. Você é acionado para orientação sobre a legalidade do movimento e medidas cabíveis.',tn:'urgente',ef:'habilidade',ve:4,se:'oratoria'},
+    {t:'TRT-1 — Câmara especializada em acidente',d:'A câmara especializada em acidentes de trabalho do TRT-1 proferiu acórdão favorável à sua tese de excludente de responsabilidade.',tn:'positivo',ef:'reputacao',ve:4},
+    {t:'Inspeção do trabalho em cliente',d:'Auditor Fiscal do Trabalho realizou inspeção em empresa cliente e lavrou auto por irregularidades na jornada. Defesa administrativa necessária.',tn:'urgente',ef:'dinheiro',ve:-3000},
+  ],
+  civil:[
+    {t:'STJ — Prazo prescricional reanalisado',d:'O STJ afetou tese sobre prazo prescricional em responsabilidade civil contratual, gerando revisão de estratégias em processos em curso.',tn:'neutro',ef:'habilidade',ve:3,se:'pesquisa'},
+    {t:'Novo cliente — inventário complexo',d:'Família de alta renda procura seu escritório para condução de inventário extrajudicial com bens em múltiplos estados.',tn:'positivo',ef:'dinheiro',ve:15000},
+    {t:'Acordo bem-sucedido em mediação',d:'Mediação coordenada resultou em acordo de R$380mil em disputa imobiliária. Cliente satisfeito e honorários de êxito pagos.',tn:'positivo',ef:'dinheiro',ve:18000},
+    {t:'TJRJ — Câmara cível favorável',d:'A 7ª Câmara Cível do TJRJ confirmou sentença favorável em caso de responsabilidade civil por danos morais que você acompanhou.',tn:'positivo',ef:'reputacao',ve:5},
+    {t:'Despejo liminar deferido',d:'O juiz deferiu liminar de despejo por falta de pagamento em processo de cliente locador. Prazo de desocupação: 15 dias.',tn:'positivo',ef:'dinheiro',ve:6000},
+  ],
+  criminal:[
+    {t:'STF — Habeas Corpus coletivo',d:'O STF julgou HC coletivo sobre prisões preventivas prolongadas, criando precedente favorável para réus que você defende.',tn:'positivo',ef:'reputacao',ve:5},
+    {t:'Absolvição em júri popular',d:'Seu cliente foi absolvido por unanimidade no Tribunal do Júri após sua sustentação oral. Repercussão positiva na comarca.',tn:'positivo',ef:'reputacao',ve:8},
+    {t:'STJ — Tráfico e quantidade de droga',d:'O STJ reafirmou entendimento sobre quantidade de droga como critério para fixação da pena-base, impactando casos em andamento.',tn:'neutro',ef:'habilidade',ve:3,se:'pesquisa'},
+    {t:'Novo cliente — flagrante controverso',d:'Preso em flagrante por receptação, cliente afirma desconhecimento da origem ilícita. Audiência de custódia amanhã.',tn:'urgente',ef:'dinheiro',ve:5000},
+    {t:'Acordo de não persecução penal',d:'MP aceitou proposta de ANPP em caso de seu cliente (CP art. 28-A). Primeira oportunidade de acordo: condições ajustadas.',tn:'positivo',ef:'dinheiro',ve:8000},
+  ],
+  empresarial:[
+    {t:'Recuperação judicial — Assembleia de credores',d:'A AGC de um cliente em RJ aprovou o plano por 67% dos votos. Reestruturação seguirá conforme proposto.',tn:'positivo',ef:'reputacao',ve:6},
+    {t:'M&A — Due diligence urgente',d:'Grupo empresarial contrata seu escritório para due diligence jurídica de aquisição de R$120 milhões. Prazo: 30 dias.',tn:'positivo',ef:'dinheiro',ve:25000},
+    {t:'STJ — Responsabilidade de administrador',d:'STJ reafirmou que o simples encerramento irregular da empresa autoriza redirecionamento da execução ao sócio-gerente.',tn:'neutro',ef:'habilidade',ve:4,se:'tecnica'},
+    {t:'Contrato internacional — Cláusula arbitral',d:'Cliente com contrato de exportação aciona cláusula arbitral da CCI. Nomeação de árbitro e defesa inicial necessárias.',tn:'urgente',ef:'dinheiro',ve:20000},
+    {t:'TJRJ — Câmara empresarial favorável',d:'A Câmara Empresarial do TJRJ reconheceu teoria da imprevisão em contrato durante pandemia, favorecendo sua tese.',tn:'positivo',ef:'reputacao',ve:4},
+  ],
+  constitucional:[
+    {t:'STF — Repercussão geral reconhecida',d:'O STF reconheceu repercussão geral em tema constitucional que você acompanha, abrindo caminho para tese vinculante.',tn:'positivo',ef:'reputacao',ve:5},
+    {t:'ADI — Pedido de informações ao governador',d:'O STF solicitou informações ao governador em ADI sobre lei estadual que você questionou. Prazo de 30 dias.',tn:'neutro',ef:'habilidade',ve:3,se:'pesquisa'},
+    {t:'Mandado de segurança deferido',d:'O TJ deferiu MS impetrado por seu cliente, suspendendo ato administrativo inconstitucional. Vitória importante.',tn:'positivo',ef:'dinheiro',ve:10000},
+    {t:'Novo precedente vinculante',d:'STF editou nova Súmula Vinculante sobre direito fundamental, diretamente aplicável a caso que você litiga.',tn:'positivo',ef:'reputacao',ve:4},
+  ],
+  ambiental:[
+    {t:'IBAMA — Operação de fiscalização',d:'Nova operação do IBAMA na região autuou 15 empresas. Demanda por defesa administrativa aqueceu no mercado.',tn:'positivo',ef:'dinheiro',ve:8000},
+    {t:'STJ — Responsabilidade civil ambiental',d:'STJ reafirmou imprescritibilidade da pretensão de reparação de dano ambiental, impactando casos históricos.',tn:'neutro',ef:'habilidade',ve:4,se:'pesquisa'},
+    {t:'Licença ambiental deferida',d:'O INEA concedeu licença de operação para cliente após defesa técnico-jurídica coordenada pelo seu escritório.',tn:'positivo',ef:'dinheiro',ve:15000},
+    {t:'Ação Civil Pública — Liminar',d:'MP ajuizou ACP com pedido de liminar contra cliente seu. Prazo urgente para contestação e resposta à medida.',tn:'urgente',ef:'dinheiro',ve:-5000},
+  ],
+  previdenciario:[
+    {t:'TNU — Tese favorável ao segurado',d:'A Turma Nacional de Uniformização editou tese favorável ao segurado em tema previdenciário relevante para seus casos.',tn:'positivo',ef:'reputacao',ve:4},
+    {t:'INSS — Fila de perícias reduzida',d:'O INSS reduziu o prazo para realização de perícias médicas, acelerando resolução de benefícios negados administrativamente.',tn:'positivo',ef:'habilidade',ve:3,se:'gestao'},
+    {t:'Novo cliente — aposentadoria negada',d:'Trabalhador rural de 68 anos, com toda documentação, tem benefício negado por suposta falta de comprovação rural. JEF urgente.',tn:'urgente',ef:'dinheiro',ve:3000},
+    {t:'TRF-2 — Tempo especial reconhecido',d:'Câmara do TRF-2 reconheceu tempo especial a trabalhador exposto a agente nocivo, favorecendo sua tese em casos análogos.',tn:'positivo',ef:'reputacao',ve:5},
+    {t:'Revisão da vida toda — Execução',d:'Com o trânsito em julgado do STF sobre Revisão da Vida Toda, clientes buscam execução de diferenças acumuladas.',tn:'positivo',ef:'dinheiro',ve:12000},
+  ],
+};
+const EVENTOS_GERAIS=[
+  {t:'Novo cliente por indicação',d:'Um colega de escritório indicou um cliente com demanda urgente. Reputação começa a gerar retorno.',tn:'positivo',ef:'dinheiro',ve:5000},
+  {t:'Artigo publicado em revista jurídica',d:'Seu artigo sobre a especialidade foi aceito para publicação. Visibilidade no mercado aumenta.',tn:'positivo',ef:'reputacao',ve:4},
+  {t:'Palestra em evento da OAB',d:'Você foi convidado para palestrar em evento seccional. Networking valioso com colegas.',tn:'positivo',ef:'networking',ve:3},
+  {t:'Prazo processual crítico',d:'Verificação da agenda revela prazo importante vencendo. Organização interna é fundamental.',tn:'urgente',ef:'habilidade',ve:2,se:'gestao'},
+  {t:'Congresso jurídico nacional',d:'Participação em congresso permitiu contato com profissionais de referência e jurisprudência atualizada.',tn:'neutro',ef:'habilidade',ve:3,se:'pesquisa'},
+];
+function evSem(){
+  const esp=G.esp;
+  const pool=[...(EVENTOS_ESP[esp]||[]),...EVENTOS_GERAIS];
+  const ev=pool[rnd(pool.length)];
+  noticia(`<b>${ev.t}</b>: ${ev.d}`,ev.tn);
+  if(ev.ef==='dinheiro'&&ev.ve){G.dinheiro+=ev.ve;if(ev.ve>0)toast(`💰 ${ev.t}: +${fmt(ev.ve)}`,'ok');}
+  else if(ev.ef==='reputacao'&&ev.ve)G.rep=Math.max(0,Math.min(100,G.rep+ev.ve));
+  else if((ev.ef==='habilidade'||ev.ef==='networking')&&ev.se&&G.sk[ev.se]!==undefined)G.sk[ev.se]=Math.min(100,G.sk[ev.se]+(ev.ve||3));
+  gainXP(4);
 }
-async function novoCasoIA(){
-  const btn=document.querySelector('[onclick="novoCasoIA()"]');if(btn){btn.disabled=true;btn.textContent='⏳...';}
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:`
-Jogo jurídico. 1 caso de ${G.esp} para ${G.nome} (${cargo().label}).
-JSON puro: {"tipo":"ação de ${G.esp}","autor":"nome","reu":"réu","tribunal":"tribunal para ${G.esp}","valor":numero,"hon":numero,"urgente":false}
-Juridicamente realista e pertinente a ${G.esp}.`}]})});
-    const d=await res.json();const c=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
-    const esp=G.esp;const casos=CASOS[esp]||CASOS.civil;const mod=casos[rnd(casos.length)];
-    const trbs=TRIBUNAIS[esp]||TRIBUNAIS.civil;
-    const num=`${String(pctr++).padStart(7,'0')}-${String(rnd(99)).padStart(2,'0')}.2024.8.19.0001`;
-    G.procs.push({id:Math.random().toString(36).substr(2,9),numero:num,tipo:c.tipo,pecas:mod.pecas,sk:mod.sk,dica:mod.dica,autor:c.autor,reu:c.reu,tribunal:c.tribunal||trbs[rnd(trbs.length)],status:'andamento',urgente:c.urgente||false,fase:'Petição Inicial',peca:null,valor:c.valor||80000,hon:c.hon||15000,criado:`S${G.sg}`,audsem:Math.random()<.3?G.sg+rnd(5)+1:null});
-    toast(`📁 Novo caso: ${c.tipo}`,'ok');noticia(`Novo caso: ${c.tipo} — ${c.autor} vs ${c.reu}`,'positivo');gainXP(5);
-  }catch(e){G.procs.push(mkProc());toast('📁 Novo caso adicionado!','ok');}
-  updTb();updR();if(btn){btn.disabled=false;btn.textContent='+ Novo caso';}
+function novoCasoIA(){
+  const btn=document.querySelector('[onclick="novoCasoIA()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  const novo=mkProc();
+  G.procs.push(novo);
+  toast(`📁 Novo caso: ${novo.tipo}`,'ok');
+  noticia(`Novo caso aceito: ${novo.tipo} — ${novo.autor} vs ${novo.reu}`,'positivo');
+  gainXP(5);updTb();updR();
+  if(btn){btn.disabled=false;btn.textContent='+ Novo caso';}
   rProcs(document.getElementById('cp'));
 }
 
