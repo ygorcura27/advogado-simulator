@@ -402,6 +402,7 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
         <div class="sr"><span class="sl3">Reputação</span><span class="sv" id="rrep">0/100</span></div>
         <div class="sr"><span class="sl3">Casos ativos</span><span class="sv" id="rcas">0</span></div>
         <div class="sr"><span class="sl3">Taxa de vitória</span><span class="sv" id="rwin">—</span></div>
+        <div class="sr"><span class="sl3">Aproveitamento anual</span><span class="sv" id="rano">—</span></div>
         <div class="sr"><span class="sl3">Escritório</span><span class="sv" id="resc" style="font-size:.72rem;color:var(--d)">—</span></div>
         <div class="sr"><span class="sl3">Renda mensal</span><span class="sv mn" id="rrenda">R$ 0</span></div>
         <div class="sr"><span class="sl3">Saldo</span><span class="sv mn" id="rsal">R$ 0</span></div>
@@ -1014,8 +1015,9 @@ function startGame(){
   const nome=document.getElementById('inp-nome').value.trim();
   const esp=document.getElementById('inp-esp').value;
   const pub=CAREERS[selCareer].pub;
-  G={nome,career:selCareer,esp,ci:0,oab:false,cprova:false,cdispon:false,anos:0,sg:0,sem:1,mes:0,ano:2024,
+  G={nome,career:selCareer,esp,ci:0,oab:false,cprova:false,cdispon:false,anos:0,sg:0,sem:1,mes:0,ano:2026,
     xp:0,xpn:120,rep:30,vida:100,feliz:80,dinheiro:pub?8000:12000,renda:1500,wins:0,losses:0,
+    wins_ano:0,losses_ano:0,bonus_pendente:0,
     escritorio_id:'solo',vaga_tipo:'contencioso',derrotas_consecutivas:0,
     study_queue:[],financiamentos:{},moradias_compradas:{},mes_global:1,
     sk:{oratoria:15,argumentacao:15,escrita:15,pesquisa:18,negociacao:12,persuasao:12,gestao:8,networking:10},
@@ -1069,7 +1071,9 @@ function calcRepPatrimonio(){
 }
 
 function calcR(){
-  if(typeof calcRendaEscritorio==='function'&&G.escritorio_id){
+  if(G.escritorio_id==='solo'){
+    G.renda=0; // solo: só honorários de processo
+  } else if(typeof calcRendaEscritorio==='function'&&G.escritorio_id){
     G.renda=calcRendaEscritorio();
   } else {
     const c=cargo();
@@ -1079,6 +1083,21 @@ function calcR(){
   }
 }
 function honMult(){return vagaAtual()?.hon_mult||1;}
+
+// Calcula honorários de vitória baseado no tipo de carreira e instância
+function calcHonorarios(p,instancia){
+  const inst=instancia||p.instancia||1;
+  const pct={1:0.10,2:0.10,3:0.05,4:0.05}[inst]||0.10; // % sucumbência por instância
+  const sucumbencia=Math.floor(p.valor*pct);
+  if(G.escritorio_id==='solo'){
+    // Solo: 30% do valor da causa (contigência) + sucumbência total
+    const contingencia=inst===1?Math.floor(p.valor*0.30):0; // só na 1ª instância
+    return contingencia+sucumbencia;
+  } else {
+    // Escritório: 10% da sucumbência do escritório por instância
+    return Math.floor(sucumbencia*0.10);
+  }
+}
 function calcD(){
   let d=0;
   // Escritório próprio (coworking/sala etc)
@@ -1143,13 +1162,15 @@ function mkProc(o={}){
   const num=`${String(pctr++).padStart(7,'0')}-${String(rnd(99)).padStart(2,'0')}.2024.8.19.0001`;
   const{valor,hon,nivel,dif}=calcValorCaso();
   // chance de sucesso inicial: 50% base, modificada pelo nível de dificuldade vs habilidades
-  const skMedio=(G.sk.tecnica+G.sk.oratoria+G.sk.pesquisa)/3;
+  const skMedio=((G.sk.argumentacao||15)+(G.sk.oratoria||15)+(G.sk.pesquisa||15))/3;
   const chanceSucesso=Math.max(10,Math.min(95,Math.round(50+(skMedio-50)*0.5-(dif*0.8))));
   return{id:Math.random().toString(36).substr(2,9),numero:num,tipo:o.tipo||mod.tipo,
     pecas:mod.pecas,sk:mod.sk,dica:mod.dica,
     autor:o.autor||AUTORES[rnd(AUTORES.length)],reu:o.reu||REUS[rnd(REUS.length)],
     tribunal:o.tribunal||trbs[rnd(trbs.length)],status:'andamento',urgente:Math.random()<.2,
     fase:'1ª Instância',instancia:1,peca:null,valor,hon,nivel,dif,
+    tipo_processo:Math.random()<0.25?'administrativo':'judicial',
+    reu_eh_estado:Math.random()<0.5,
     chanceSucesso,         // % de chance de vitória atual
     progresso:0,           // 0-100 — progresso acumulado no caso
     hon_total:hon,         // honorários acumulados (cresce por instância)
@@ -1183,7 +1204,8 @@ function updR(){
   document.getElementById('rcas').textContent=G.procs.length;
   const tot=G.wins+G.losses;
   document.getElementById('rwin').textContent=tot>0?Math.round(G.wins/tot*100)+'%':'—';
-  calcR();document.getElementById('rrenda').textContent=fmt(G.renda);
+  const totA=(G.wins_ano||0)+(G.losses_ano||0);const ranoEl=document.getElementById('rano');if(ranoEl)ranoEl.textContent=totA>0?Math.round((G.wins_ano||0)/totA*100)+'% ('+totA+' casos)':'—';
+  calcR();const _rr=document.getElementById('rrenda');if(_rr)_rr.textContent=G.escritorio_id==='solo'?'Só honorários':fmt(G.renda);
   document.getElementById('rsal').textContent=fmt(G.dinheiro);
   document.getElementById('rsm').innerHTML=SKDEF.slice(0,4).map(s=>`
     <div style="margin-bottom:.42rem">
@@ -1233,6 +1255,7 @@ function rProcs(cp){
       <div class="pm">
         <span class="pt2 andamento">${instNm}</span>
         ${p.urgente?'<span class="pt2 urgente">URGENTE</span>':''}
+        ${p.tipo_processo==='administrativo'?'<span class="pt2" style="color:#90b8ff">📋 ADMIN.</span>':''}
         ${p.peca?`<span class="pt2" style="color:#90b8ff">✓ ${p.peca.slice(0,20)}</span>`:'<span class="pt2" style="color:#ffa726">⚠ Peça pendente</span>'}
         <span class="pt2" style="margin-left:auto;color:var(--d)">Nv${p.nivel||1} · ${fK(p.valor)}</span>
         <span class="pt2" style="color:${csC2}">⚖️${cs2}%</span>
@@ -1615,28 +1638,36 @@ function rAcoesP(p){
     </div>
     <div style="font-size:.78rem;color:var(--sl);margin-bottom:.55rem">Escolha a próxima ação:</div>
     <div class="pg">
-      <button class="pb2" onclick="iniciarQuiz('${p.id}','audiencia')">
+      ${(()=>{
+        const cid=cargo().id;
+        const podeAud=['jnr','pln','snr','asc','soc','snm','jsub','jtit','dsb','mstj','padj','prom','pjus','pgj','dadj','def','dch','dge'].includes(cid);
+        const audBloq=!podeAud?'<span class="pbd" style="color:#ff8096">🔒 Requer Adv. Júnior+</span>':'<span class="pbd">3 perguntas → progresso e chance de vitória</span>';
+        const honInfo=G.escritorio_id==='solo'
+          ?'Solo: 30% causa + sucumbência por inst.'
+          :'Escritório: 10% sucumbência por inst.';
+        return`
+      <button class="pb2" onclick="${podeAud?`iniciarQuiz('${p.id}','audiencia')`:'toast("Cargo insuficiente para audiências.","ko")'}" ${!podeAud?'style="opacity:.45"':''}>
         <span class="pbt">🏛️ Realizar audiência</span>
-        <span class="pbd">3 perguntas → progresso e chance de vitória</span>
+        ${audBloq}
       </button>
       <button class="pb2" onclick="iniciarQuiz('${p.id}','pesquisa')">
         <span class="pbt">🔬 Pesquisa jurídica</span>
-        <span class="pbd">3 perguntas → +progresso e +habilidade</span>
+        <span class="pbd">Todos os cargos · +progresso e +habilidade</span>
       </button>
       <button class="pb2" onclick="acaoAcordo('${p.id}')">
         <span class="pbt">🤝 Propor acordo</span>
-        <span class="pbd">Encerrar agora · honorários parciais</span>
+        <span class="pbd">${honInfo} · 50% do valor</span>
       </button>
-      ${p.instancia>1&&p.recurso_adv==='pendente'?`
-      <button class="pb2" style="border-color:#ff8096" onclick="decidirRecurso('${p.id}',true)">
-        <span class="pbt" style="color:#ff8096">⚠️ Interpor recurso</span>
-        <span class="pbd">Chance: ${cs}% · Risco: -rep e -XP se perder</span>
+      ${p.recurso_adv==='pendente'?`
+      <button class="pb2" style="border-color:${podeFazerRecurso((p.instancia||1)+1)?'#ffa726':'#666'}" onclick="decidirRecurso('${p.id}',true)">
+        <span class="pbt" style="color:${podeFazerRecurso((p.instancia||1)+1)?'#ffa726':'#666'}">⚠️ Interpor recurso</span>
+        <span class="pbd">${podeFazerRecurso((p.instancia||1)+1)?`Chance: ${cs}% · Risco se perder`:'🔒 Cargo insuficiente para essa instância'}</span>
       </button>
       <button class="pb2" onclick="decidirRecurso('${p.id}',false)">
         <span class="pbt">✋ Não recorrer</span>
         <span class="pbd">Encerrar com resultado atual</span>
-      </button>
-      `:''}
+      </button>`:''}`;
+      })()}
     </div>`;
 }
 
@@ -1741,91 +1772,137 @@ function finalizarQuiz(){
 }
 
 function resolverSentenca(p){
-  // Sentença baseada na chanceSucesso
   const cs=p.chanceSucesso||50;
   const roll=Math.random()*100;
   const ganhou=roll<cs;
   const rec=RECURSOS_ESP[G.esp]||RECURSOS_ESP.civil;
+  const instAtual=p.instancia||1;
+  const isAdmin=p.tipo_processo==='administrativo';
   let html='';
+
   if(ganhou){
-    // Jogador venceu → parte contrária pode recorrer se cs do jogador < 70%
-    const partRecorre=cs<70&&Math.random()<0.6;
-    p.hon_total=Math.floor(p.valor*0.10); // 10% 1ª instância
-    G.dinheiro+=Math.floor(p.hon_total*(honMult()));G.wins++;G.rep=Math.min(100,G.rep+5);gainXP(25);
-    G.derrotas_consecutivas=0;
-    if(partRecorre&&p.instancia<4){
-      // Parte contrária recorre → avança instância, honorários aumentam
-      p.instancia=(p.instancia||1)+1;
-      p.progresso=0;
-      const hon_add=p.instancia===2?p.valor*0.10:p.instancia===3?p.valor*0.05:p.valor*0.05;
-      p.hon=Math.floor(hon_add);
-      p.hon_total+=Math.floor(hon_add);
-      noticia(`⚖️ Vitória em 1ª instância! ${p.reu} recorreu via ${rec.ap}. Caso continua.`,'positivo');
-      html=`<div style="background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ffa726;line-height:1.6">
-        ✅ <b>Sentença favorável!</b> Honorários de 1ª instância: ${fmt(p.hon_total)}<br>
-        ⚠️ ${p.reu} recorreu via <b>${rec.ap}</b>. O caso continua na 2ª instância.
-      </div>`;
+    const hon=calcHonorarios(p,instAtual);
+    p.hon_total=(p.hon_total||0)+hon;
+    G.dinheiro+=hon;
+    G.wins++;G.wins_ano=(G.wins_ano||0)+1;
+    G.rep=Math.min(100,G.rep+5);gainXP(25);G.derrotas_consecutivas=0;
+
+    // Regra administrativa: Estado perde → decisão transitada em julgado (não pode recorrer)
+    const estadoNaoPodeRecorrer=isAdmin&&p.reu_eh_estado;
+    const partRecorre=!estadoNaoPodeRecorrer&&cs<70&&Math.random()<0.55&&instAtual<4;
+
+    if(partRecorre){
+      p.instancia=instAtual+1;p.progresso=0;p.recurso_adv=null;
+      const recLabel=p.instancia===2?rec.ap:p.instancia===3?rec.resp:rec.re;
+      // Verificar restrição de cargo para instâncias superiores
+      const podeIr=podeFazerRecurso(p.instancia);
+      if(!podeIr){
+        // Caso encerrado por limitação de cargo
+        finP(p.id);
+        noticia(`⚠️ ${p.reu} recorreu via ${recLabel}, mas seu cargo atual (${cargo().label}) não permite atuar nessa instância. Caso encerrado.`,'urgente');
+        html=`<div style="background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ffa726;line-height:1.6">
+          ✅ Sentença favorável! Hon. recebidos: <b>${fmt(hon)}</b><br>
+          ⚠️ ${p.reu} recorreu via <b>${recLabel}</b>, mas você precisa de cargo superior para atuar nessa instância.<br>
+          Caso encerrado com honorários parciais.
+        </div>`;
+      } else {
+        noticia(`⚖️ Vitória na ${instAtual===1?'1ª instância':instAtual===2?'2ª instância':'instância superior'}! ${p.reu} recorreu via ${recLabel}.`,'positivo');
+        html=`<div style="background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ffa726;line-height:1.6">
+          ✅ <b>Sentença favorável!</b> Honorários recebidos: <b>${fmt(hon)}</b><br>
+          ⚠️ ${p.reu} recorreu via <b>${recLabel}</b>. O caso continua.
+        </div>`;
+      }
     } else {
       // Encerrado definitivamente
       finP(p.id);
-      noticia(`🏆 Vitória definitiva: ${p.tipo} — ${fmt(p.hon_total)} em honorários!`,'positivo');
-      toast(`🏆 Vitória! +${fmt(p.hon_total)} honorários`,'ok');
+      const motivo=estadoNaoPodeRecorrer?` O Estado perdeu o processo administrativo — decisão transitada em julgado.`:'';
+      noticia(`🏆 Vitória definitiva: ${p.tipo} — ${fmt(p.hon_total)} em honorários!${motivo}`,'positivo');
+      toast(`🏆 Vitória! +${fmt(hon)} honorários`,'ok');
+      const honDesc=G.escritorio_id==='solo'?
+        `30% do valor da causa + sucumbência de ${instAtual===1?'10%':instAtual===2?'+10%':'+5%'} = ${fmt(hon)}`:
+        `10% dos honorários do escritório (inst. ${instAtual}) = ${fmt(hon)}`;
       html=`<div style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);border-radius:2px;padding:.7rem;font-size:.78rem;color:#a5d6a7;line-height:1.6">
-        🏆 <b>Vitória definitiva! Trânsito em julgado.</b><br>Honorários totais: <b>${fmt(p.hon_total)}</b>
+        🏆 <b>Vitória definitiva! Trânsito em julgado.</b><br>
+        💰 ${honDesc}<br>
+        Total acumulado no caso: <b>${fmt(p.hon_total)}</b>
+        ${estadoNaoPodeRecorrer?'<br><i>📋 Processo admin.: Estado não pode recorrer.</i>':''}
       </div>`;
     }
   } else {
     // Jogador perdeu
-    G.losses++;G.rep=Math.max(0,G.rep-5);gainXP(10);
+    G.losses++;G.losses_ano=(G.losses_ano||0)+1;
+    G.rep=Math.max(0,G.rep-5);gainXP(10);
     G.derrotas_consecutivas=(G.derrotas_consecutivas||0)+1;
     verificarDemissao();
-    if(cs>=70){
-      // Pode recorrer
-      p.recurso_adv='pendente';
-      p.progresso=0;
-      noticia(`❌ Derrota em ${p.instancia===1?'1ª instância':p.instancia===2?'2ª instância':'superior'}. Chance acima de 70% — recurso recomendado.`,'urgente');
+    // Processo admin. perdido pelo jogador: pode recorrer judicialmente
+    if(isAdmin&&instAtual===1){
+      p.instancia=2;p.progresso=0;p.recurso_adv=null;
+      p.tipo_processo='judicial'; // vira judicial agora
+      noticia(`❌ Derrota administrativa em ${p.tipo}. Você pode recorrer judicialmente.`,'urgente');
       html=`<div style="background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ff8096;line-height:1.6">
-        ❌ <b>Sentença desfavorável.</b> Sua chance de sucesso é ${cs}% — <b>acima de 70%</b>.<br>
-        Você pode interpor <b>${rec.ap}</b>. Decida na próxima ação.
+        ❌ <b>Decisão administrativa desfavorável.</b><br>
+        Você pode recorrer judicialmente — caso avança para a esfera judicial.
+      </div>`;
+    } else if(cs>=70&&podeFazerRecurso(instAtual+1)){
+      p.recurso_adv='pendente';p.progresso=0;
+      const recLabel=rec.ap;
+      noticia(`❌ Derrota. Chance acima de 70% — recurso via ${recLabel} recomendado.`,'urgente');
+      html=`<div style="background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ff8096;line-height:1.6">
+        ❌ <b>Sentença desfavorável.</b> Chance de sucesso: <b>${cs}%</b> (acima de 70%).<br>
+        Você pode interpor <b>${recLabel}</b>. Decida na próxima ação.
       </div>`;
     } else {
-      // Não pode ou não compensa recorrer
       finP(p.id);
-      noticia(`❌ Derrota: ${p.tipo}. Chance abaixo de 70% — recurso não recomendado.`,'urgente');
+      noticia(`❌ Derrota: ${p.tipo}. ${cs<70?'Chance abaixo de 70% — recurso não recomendado.':'Instância máxima atingida.'}${'urgente'}`,'urgente');
       toast('❌ Processo encerrado com derrota.','ko');
       html=`<div style="background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);border-radius:2px;padding:.7rem;font-size:.78rem;color:#ff8096;line-height:1.6">
-        ❌ <b>Sentença desfavorável.</b> Chance de sucesso: ${cs}% (abaixo de 70%).<br>
-        Recurso não é recomendado. Caso encerrado.
+        ❌ <b>Sentença desfavorável.</b> Chance: ${cs}% · ${cs<70?'Abaixo de 70% — recurso não recomendado':'Instância máxima: trânsito em julgado'}.<br>
+        Caso encerrado.
       </div>`;
     }
   }
   return html;
 }
 
+// Verifica se o cargo atual permite atuar na instância
+function podeFazerRecurso(instancia){
+  const cid=cargo().id;
+  if(instancia<=1)return true; // 1ª instância: todos
+  if(instancia===2){
+    // 2ª inst (TJ/CARF): Advogado Pleno+
+    return ['pln','snr','asc','soc','snm','jsub','jtit','dsb','mstj','padj','prom','pjus','pgj','dadj','def','dch','dge'].includes(cid);
+  }
+  if(instancia>=3){
+    // STJ/STF: Advogado Sênior+
+    return ['snr','asc','soc','snm','jtit','dsb','mstj','prom','pjus','pgj','def','dch','dge'].includes(cid);
+  }
+  return false;
+}
+
 function decidirRecurso(procId,interpor){
   const p=G.procs.find(x=>x.id===procId);if(!p)return;
   const rec=RECURSOS_ESP[G.esp]||RECURSOS_ESP.civil;
   if(!interpor){
-    // Não recorrer → encerrar
     finP(procId);toast('Caso encerrado sem recurso.','');
     cM('pm');sw('processos');return;
   }
-  // Interpor recurso → avançar instância, honorários adicionais
-  p.instancia=(p.instancia||1)+1;
-  p.recurso_adv='interposto';
-  p.progresso=0;
+  const novaInst=(p.instancia||1)+1;
+  // Verificar cargo mínimo
+  if(!podeFazerRecurso(novaInst)){
+    const instLabel=novaInst===2?'TJ/CARF (Pleno+)':'STJ/STF (Sênior+)';
+    toast(`❌ Cargo insuficiente para ${instLabel}. Você precisa ser Advogado Pleno+ para 2ª inst. ou Sênior+ para STJ/STF.`,'ko');
+    return;
+  }
+  p.instancia=novaInst;p.recurso_adv='interposto';p.progresso=0;
   const recLabel=p.instancia===2?rec.ap:p.instancia===3?rec.resp:rec.re;
-  const hon_add=p.instancia===2?p.valor*0.10:p.instancia===3?p.valor*0.05:p.valor*0.05;
-  p.hon=Math.floor(hon_add);
-  p.hon_total=(p.hon_total||0)+Math.floor(hon_add);
+  // Honorários: referência para quando ganhar nessa instância
   if(p.instancia>=4){
-    // Último recurso — RE → trânsito em julgado após julgamento
-    noticia(`📋 Recurso Extraordinário interposto no STF. Julgamento aguardado.`,'neutro');
+    noticia(`📋 Recurso Extraordinário (STF) interposto. Julgamento aguardado.`,'neutro');
   } else {
-    noticia(`📋 ${recLabel} interposto. Honorários adicionais: ${fmt(Math.floor(hon_add))}`,'positivo');
+    noticia(`📋 ${recLabel} interposto. Honorários de sucesso: ${fmt(calcHonorarios(p,p.instancia))}`,'positivo');
   }
   toast(`📋 ${recLabel} interposto!`,'ok');
-  gainXP(15);cM('pm');
+  gainXP(12);cM('pm');
   setTimeout(()=>{abrirPAcoes(procId);},80);
   autoSave();
 }
@@ -1833,14 +1910,14 @@ function decidirRecurso(procId,interpor){
 function acaoAcordo(procId){
   const p=G.procs.find(x=>x.id===procId);if(!p)return;
   const cs=p.chanceSucesso||50;
-  // Chance de acordo aceito proporcional à chance de sucesso do jogador
   const acordoAceito=Math.random()<(cs/120+0.25);
-  const valorAcordo=Math.floor(p.valor*(0.35+cs/200));
-  const honAcordo=Math.floor(valorAcordo*0.10);
   if(acordoAceito){
-    G.dinheiro+=honAcordo;G.wins++;gainXP(12);G.rep=Math.min(100,G.rep+2);
+    // Acordo: honorários proporcionais (50% do que seria numa vitória)
+    const honAcordo=Math.floor(calcHonorarios(p,p.instancia||1)*0.5);
+    G.dinheiro+=honAcordo;G.wins++;G.wins_ano=(G.wins_ano||0)+1;
+    gainXP(12);G.rep=Math.min(100,G.rep+2);G.derrotas_consecutivas=0;
     finP(procId);
-    noticia(`🤝 Acordo: ${p.tipo} — ${fmt(valorAcordo)} · honorários: ${fmt(honAcordo)}`,'positivo');
+    noticia(`🤝 Acordo: ${p.tipo} — honorários: ${fmt(honAcordo)}`,'positivo');
     toast(`🤝 Acordo fechado! +${fmt(honAcordo)} honorários`,'ok');
   } else {
     noticia(`🤝 Proposta de acordo rejeitada em ${p.tipo}. Continue litigando.`,'neutro');
@@ -2495,16 +2572,120 @@ function rNews(cp){
   [...G.noticias].reverse().forEach(n=>{cp.innerHTML+=`<div class="ni2 ${n.tipo||''}"><div class="nd">${n.data}</div><div class="nt">${n.texto}</div></div>`;});
 }
 
+
+// ══ BÔNUS ANUAL (pago em janeiro) ══
+function pagarBonusAnual(){
+  if(G.escritorio_id==='solo')return; // solo não tem bônus de escritório
+  const total=G.wins_ano+G.losses_ano;
+  if(total===0)return;
+  const pct=total>0?Math.round(G.wins_ano/total*100):0;
+  const salM=G.renda||5000;
+  let bonus=0,desc='';
+  if(pct===100){bonus=salM*6;desc='100% de aproveitamento — 6 salários!';}
+  else if(pct>=90){bonus=salM*3;desc='90%+ de aproveitamento — 3 salários!';}
+  else if(pct>=80){bonus=salM*2;desc='80%+ de aproveitamento — 2 salários!';}
+  else if(pct>=70){bonus=salM*1;desc='70%+ de aproveitamento — 1 salário!';}
+  else{desc=`Aproveitamento ${pct}% — sem bônus (mínimo: 70%).`;}
+  if(bonus>0){
+    G.dinheiro+=bonus;
+    noticia(`🎉 <b>Bônus anual ${G.ano-1}!</b> ${desc} +${fmt(bonus)}`,'positivo');
+    toast(`🎉 Bônus anual: +${fmt(bonus)}!`,'ok');
+    gainXP(30);G.rep=Math.min(100,G.rep+3);
+  } else {
+    noticia(`📊 <b>Performance ${G.ano-1}:</b> ${pct}% de aproveitamento. ${desc}`,'neutro');
+  }
+}
+
+// ══ EVENTO DE RECESSO JUDICIÁRIO ══
+function mostrarEventoRecesso(){
+  // Modal de recesso em janeiro
+  const modal=document.getElementById('pm');
+  document.getElementById('pmt').textContent='🏖️ Recesso Judiciário — Janeiro '+G.ano;
+  document.getElementById('pmm').innerHTML=`Os tribunais estão de recesso. Nenhum processo tramita em janeiro.<br>
+    <span style="font-size:.75rem;color:var(--sl)">Aproveite para descansar ou investir em si mesmo.</span>`;
+  document.getElementById('pmc').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem">
+      <div style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.35);border-radius:2px;padding:.85rem;text-align:center;cursor:pointer" onclick="recessoViajar()">
+        <div style="font-size:1.8rem">✈️</div>
+        <div style="font-weight:600;font-size:.88rem;color:var(--cr);margin:.25rem 0">Viajar de férias</div>
+        <div style="font-size:.72rem;color:var(--sl)">Custo: ${fmt(calcCustoViagem())} · +5 rep · +8 Networking</div>
+      </div>
+      <div style="background:rgba(30,64,128,.12);border:1px solid rgba(30,64,128,.35);border-radius:2px;padding:.85rem;text-align:center;cursor:pointer" onclick="recessoEstudar()">
+        <div style="font-size:1.8rem">📚</div>
+        <div style="font-weight:600;font-size:.88rem;color:var(--cr);margin:.25rem 0">Curso intensivo</div>
+        <div style="font-size:.72rem;color:var(--sl)">Custo: R$3.000 · +5 em skill escolhida (imediato)</div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.85rem;text-align:center;cursor:pointer" onclick="recessoDescansar()">
+        <div style="font-size:1.8rem">🛋️</div>
+        <div style="font-weight:600;font-size:.88rem;color:var(--cr);margin:.25rem 0">Descansar em casa</div>
+        <div style="font-size:.72rem;color:var(--sl)">Gratuito · +3 Saúde/Bem-estar</div>
+      </div>
+      <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.85rem;text-align:center;cursor:pointer" onclick="recessoNetworking()">
+        <div style="font-size:1.8rem">🍷</div>
+        <div style="font-weight:600;font-size:.88rem;color:var(--cr);margin:.25rem 0">Eventos de networking</div>
+        <div style="font-size:.72rem;color:var(--sl)">Custo: R$1.500 · +3 rep · +10 Networking</div>
+      </div>
+    </div>
+    <div style="font-size:.73rem;color:var(--sl);text-align:center">Escolha uma atividade para o mês de recesso.</div>`;
+  modal.classList.remove('h');
+}
+function calcCustoViagem(){return Math.floor(2000+G.rep*80);}
+function recessoViajar(){
+  const custo=calcCustoViagem();
+  if(G.dinheiro<custo){toast('Saldo insuficiente para a viagem.','ko');return;}
+  G.dinheiro-=custo;G.rep=Math.min(100,G.rep+5);G.sk.networking=Math.min(100,G.sk.networking+8);
+  gainXP(10);noticia(`✈️ <b>Férias de janeiro!</b> Você viajou e voltou renovado. +5 rep · +8 Networking`,'positivo');
+  toast('✈️ Férias aproveitadas!','ok');cM('pm');updTb();updR();sw('processos');autoSave();
+}
+function recessoEstudar(){
+  if(G.dinheiro<3000){toast('Saldo insuficiente.','ko');return;}
+  // Mostrar seleção de skill
+  document.getElementById('pmc').innerHTML=`
+    <div style="font-size:.8rem;color:var(--cr);margin-bottom:.7rem">Qual habilidade deseja focar no curso intensivo?</div>
+    <div style="display:flex;flex-direction:column;gap:.4rem">
+      ${SKDEF.map(s=>`<button onclick="fazerCursoRecesso('${s.k}')" style="background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.3);color:var(--cr);padding:.55rem;border-radius:2px;font-size:.8rem;cursor:pointer;text-align:left">
+        ${s.l} (atual: ${G.sk[s.k]||0}/100) → +5
+      </button>`).join('')}
+    </div>`;
+}
+function fazerCursoRecesso(sk){
+  G.dinheiro-=3000;G.sk[sk]=Math.min(100,(G.sk[sk]||0)+5);
+  gainXP(15);noticia(`📚 <b>Curso intensivo de ${SKDEF.find(s=>s.k===sk)?.l}!</b> +5 em habilidade`,'positivo');
+  toast(`📚 +5 em ${SKDEF.find(s=>s.k===sk)?.l}`,'ok');cM('pm');updTb();updR();sw('processos');autoSave();
+}
+function recessoDescansar(){
+  G.vida=Math.min(100,(G.vida||80)+3);G.feliz=Math.min(100,(G.feliz||80)+5);
+  gainXP(5);noticia(`🛋️ <b>Descanso em janeiro!</b> Você se recuperou para o novo ano. +3 bem-estar`,'positivo');
+  toast('🛋️ Descansado e renovado!','ok');cM('pm');updTb();updR();sw('processos');autoSave();
+}
+function recessoNetworking(){
+  if(G.dinheiro<1500){toast('Saldo insuficiente.','ko');return;}
+  G.dinheiro-=1500;G.rep=Math.min(100,G.rep+3);G.sk.networking=Math.min(100,G.sk.networking+10);
+  gainXP(8);noticia(`🍷 <b>Networking em janeiro!</b> +3 rep · +10 Networking`,'positivo');
+  toast('🍷 Ótimo networking!','ok');cM('pm');updTb();updR();sw('processos');autoSave();
+}
+
 // ══ AVANÇAR MÊS ══
 async function advW(){
   const btn=document.getElementById('ba');
   if(!btn||btn.disabled)return;
   btn.disabled=true;btn.textContent='⏳...';
-  // Avança 1 mês por clique
   G.sg=G.sg||0; G.sg++;
   G.mes_global=(G.mes_global||0)+1;
   G.mes=(G.mes||0)+1;
-  if(G.mes>11){G.mes=0;G.ano=(G.ano||2024)+1;G.anos=(G.anos||0)+1;}
+  if(G.mes>11){G.mes=0;G.ano=(G.ano||2026)+1;G.anos=(G.anos||0)+1;}
+
+  // ── RECESSO JUDICIÁRIO EM JANEIRO ──
+  if(G.mes===0){
+    // É janeiro: pagar bônus do ano anterior, resetar contadores, evento de recesso
+    pagarBonusAnual();
+    G.wins_ano=0;G.losses_ano=0;
+    // Evento especial de recesso
+    mostrarEventoRecesso();
+    btn.disabled=false;btn.textContent='▶ Avançar mês';
+    updTb();updR();autoSave();
+    return; // Suspende execução normal do mês (sem casos, sem eventos processuais)
+  }
   // processar study_queue (estudos agendados)
   processarStudyQueue();
   // Evento de bairro perigoso (assalto)
@@ -2677,6 +2858,10 @@ window._loadSave=function(saved){
   if(!G.audpend)G.audpend=[];
   if(!G.prfin)G.prfin=[];
   if(!G.escritorio_id)G.escritorio_id='solo';
+  if(!G.wins_ano)G.wins_ano=0;
+  if(!G.losses_ano)G.losses_ano=0;
+  if(!G.bonus_pendente)G.bonus_pendente=0;
+  if(!G.ano)G.ano=2026;
   if(!G.study_queue)G.study_queue=[];
   if(!G.financiamentos)G.financiamentos={};
   if(!G.moradias_compradas)G.moradias_compradas={};
