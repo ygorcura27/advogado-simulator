@@ -360,6 +360,7 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
     <div class="tbn" id="tbn">—</div>
     <div class="tbg" id="tbc">—</div>
     <div class="tbg" id="tbe" style="background:rgba(30,64,128,.2);border-color:rgba(30,64,128,.5);color:#90b8ff">—</div>
+      <div class="tbg" id="tb-esc" style="background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.25);color:var(--d)">—</div>
     <div class="tbr">
       <div class="sp">💰 <span class="v" id="tbd">R$ 0</span></div>
       <div class="sp">⭐ <span class="v" id="tbr2">0</span></div>
@@ -376,6 +377,7 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
       <div class="ni on" data-p="processos" onclick="sw('processos')">📁 Processos <span class="bx" id="bp2">0</span></div>
       <div class="ni" data-p="audiencias" onclick="sw('audiencias')">🏛️ Audiências <span class="bx" id="baud" style="display:none">!</span></div>
       <div class="ni" data-p="equipe" onclick="sw('equipe')">👔 Equipe</div>
+      <div class="ni" data-p="escritorios" onclick="sw('escritorios')">🏢 Escritórios</div>
       <div class="ns">Carreira</div>
       <div class="ni" data-p="progressao" onclick="sw('progressao')">🏆 Progressão</div>
       <div class="ni" data-p="habilidades" onclick="sw('habilidades')">📚 Habilidades</div>
@@ -400,6 +402,7 @@ body{font-family:'Inter',sans-serif;background:var(--verde);color:var(--cr);min-
         <div class="sr"><span class="sl3">Reputação</span><span class="sv" id="rrep">0/100</span></div>
         <div class="sr"><span class="sl3">Casos ativos</span><span class="sv" id="rcas">0</span></div>
         <div class="sr"><span class="sl3">Taxa de vitória</span><span class="sv" id="rwin">—</span></div>
+        <div class="sr"><span class="sl3">Escritório</span><span class="sv" id="resc" style="font-size:.72rem;color:var(--d)">—</span></div>
         <div class="sr"><span class="sl3">Renda mensal</span><span class="sv mn" id="rrenda">R$ 0</span></div>
         <div class="sr"><span class="sl3">Saldo</span><span class="sv mn" id="rsal">R$ 0</span></div>
       </div>
@@ -589,11 +592,22 @@ const CASOS={
   ],
 };
 const SKDEF=[
-  {k:'peticao',  l:'Peças Processuais',     cl:'az'},{k:'oratoria',  l:'Oratória / Sustentação',cl:'dr'},
-  {k:'pesquisa', l:'Pesquisa Jurídica',     cl:'vd'},{k:'negociacao',l:'Negociação',            cl:'rx'},
-  {k:'tecnica',  l:'Técnica Jurídica',      cl:'lr2'},{k:'gestao',   l:'Gestão de Escritório',  cl:'vd'},
-  {k:'networking',l:'Networking',           cl:'rx'},{k:'pressao',  l:'Resiliência',            cl:'az'},
+  {k:'oratoria',    l:'Oratória',           cl:'dr',  desc:'Sustentação oral, debates e tribunais. Essencial para contencioso.'},
+  {k:'argumentacao',l:'Argumentação',       cl:'az',  desc:'Construção de teses e raciocínio jurídico. Base de tudo.'},
+  {k:'escrita',     l:'Escrita Jurídica',   cl:'vd',  desc:'Elaboração de peças, pareceres e contratos. Essencial para peticionante.'},
+  {k:'pesquisa',    l:'Legislação & Pesquisa',cl:'lr2',desc:'Domínio da lei, doutrina e jurisprudência.'},
+  {k:'negociacao',  l:'Negociação',         cl:'rx',  desc:'Acordos, mediação e relação com clientes.'},
+  {k:'persuasao',   l:'Persuasão',          cl:'dr',  desc:'Convencer juízes, árbitros e partes. Vital em audiências.'},
+  {k:'gestao',      l:'Gestão & Liderança', cl:'vd',  desc:'Gestão de equipe, escritório e clientes.'},
+  {k:'networking',  l:'Networking',         cl:'rx',  desc:'Relacionamento com clientes, juízes e mercado.'},
 ];
+// Tipo de advogado → skills principais
+const TIPO_SKILLS={
+  contencioso: ['oratoria','argumentacao','persuasao','pesquisa'],
+  peticionante: ['escrita','argumentacao','pesquisa','negociacao'],
+  consultivo:   ['escrita','negociacao','pesquisa','gestao'],
+  societario:   ['negociacao','networking','gestao','argumentacao'],
+};
 const TRIBUNAIS={
   tributario:['CARF','TRF-2 — 4ª Turma','TJRJ — Fazenda Pública','JFRJ — 13ª Vara','TRF-2'],
   trabalhista:['TRT-1 — 1ª Vara do Trabalho','TRT-1 — 7ª Vara','TRT-1 — 23ª Vara','TST — 1ª Turma'],
@@ -604,30 +618,377 @@ const TRIBUNAIS={
   ambiental:['TJRJ — Vara do Meio Ambiente','TRF-2 — 6ª Turma','STJ — 2ª Turma'],
   previdenciario:['JEF — Rio de Janeiro','TRF-2 — 1ª Turma Esp.','TNU','JFRJ — 12ª Vara Federal'],
 };
-const PAT={
-  moradia:[{id:'alg',l:'Aluguel kitnet',i:'🏠',v:0,cm:2500},{id:'apm',l:'Apartamento médio',i:'🏢',v:400000,cm:3500},{id:'cas',l:'Casa no bairro',i:'🏡',v:800000,cm:4500},{id:'cob',l:'Cobertura duplex',i:'🏰',v:2500000,cm:8000}],
-  transporte:[{id:'mtr',l:'Transporte público',i:'🚇',v:0,cm:400},{id:'crp',l:'Carro popular',i:'🚗',v:75000,cm:1200},{id:'sed',l:'Sedan executivo',i:'🚙',v:250000,cm:3500},{id:'suv',l:'SUV de luxo',i:'🛻',v:650000,cm:6000}],
-  escritorio:[{id:'cw',l:'Coworking jurídico',i:'💼',v:0,cm:1800},{id:'sal',l:'Sala própria',i:'🏛️',v:0,cm:5000},{id:'esm',l:'Escritório médio',i:'🏢',v:0,cm:12000},{id:'esp',l:'Escritório premium',i:'⚖️',v:0,cm:28000}],
+// ══ ZONAS E MORADIAS ══
+// zona: zona geográfica | perigo: 0=seguro,1=médio,2=perigoso(rep negativa+assalto)
+const ZONAS={
+  sul:    {l:'Zona Sul',        adjacentes:['centro','sudoeste']},
+  centro: {l:'Centro / Norte',  adjacentes:['sul','oeste','norte']},
+  norte:  {l:'Zona Norte',      adjacentes:['centro','oeste']},
+  oeste:  {l:'Zona Oeste',      adjacentes:['norte','centro','baixada']},
+  sudoeste:{l:'Zona Sudoeste',  adjacentes:['sul','oeste']},
+  niteroi:{l:'Niterói',         adjacentes:[]},
+  baixada:{l:'Baixada Fluminense',adjacentes:['norte','oeste']},
 };
+
+const MORADIAS=[
+  // ── ZONA SUL (caros, rep alta) ──
+  {id:'ipanema',     l:'Apto em Ipanema',            bairro:'Ipanema',          zona:'sul',      i:'🏖️', v:2500000, rep_al:14, rep_cp:38, perigo:0},
+  {id:'leblon',      l:'Apto em Leblon',              bairro:'Leblon',           zona:'sul',      i:'🏖️', v:3000000, rep_al:15, rep_cp:40, perigo:0},
+  {id:'lagoa',       l:'Apto na Lagoa',               bairro:'Lagoa',            zona:'sul',      i:'🏊', v:2200000, rep_al:13, rep_cp:35, perigo:0},
+  {id:'copacabana',  l:'Apto em Copacabana',          bairro:'Copacabana',       zona:'sul',      i:'🏨', v:1500000, rep_al:11, rep_cp:28, perigo:0},
+  {id:'botafogo',    l:'Apto em Botafogo',            bairro:'Botafogo',         zona:'sul',      i:'🏙️', v:1200000, rep_al:10, rep_cp:26, perigo:0},
+  {id:'flamengo',    l:'Apto no Flamengo',            bairro:'Flamengo',         zona:'sul',      i:'🌳', v:1000000, rep_al:9,  rep_cp:23, perigo:0},
+  {id:'catete',      l:'Apto no Catete',              bairro:'Catete',           zona:'sul',      i:'🏠', v:700000,  rep_al:7,  rep_cp:18, perigo:0},
+  {id:'santa_teresa',l:'Casa em Santa Teresa',        bairro:'Santa Teresa',     zona:'sul',      i:'🏡', v:900000,  rep_al:8,  rep_cp:20, perigo:1},
+  {id:'laranjeiras', l:'Apto nas Laranjeiras',        bairro:'Laranjeiras',      zona:'sul',      i:'🌿', v:1100000, rep_al:9,  rep_cp:24, perigo:0},
+  // ── ZONA SUDOESTE (Barra caro, Recreio médio, Jacarepaguá barato) ──
+  {id:'barra_lux',   l:'Apto de Luxo na Barra',      bairro:'Barra da Tijuca',  zona:'sudoeste', i:'🏖️', v:3500000, rep_al:15, rep_cp:42, perigo:0},
+  {id:'barra_med',   l:'Apto Médio na Barra',        bairro:'Barra da Tijuca',  zona:'sudoeste', i:'🏢', v:1800000, rep_al:12, rep_cp:30, perigo:0},
+  {id:'recreio',     l:'Apto no Recreio',             bairro:'Recreio',          zona:'sudoeste', i:'🌊', v:1000000, rep_al:8,  rep_cp:21, perigo:0},
+  {id:'jacarepagua', l:'Casa em Jacarepaguá',         bairro:'Jacarepaguá',      zona:'sudoeste', i:'🏡', v:600000,  rep_al:5,  rep_cp:13, perigo:0},
+  {id:'pechincha',   l:'Apto em Pechincha',           bairro:'Pechincha',        zona:'sudoeste', i:'🏠', v:400000,  rep_al:3,  rep_cp:8,  perigo:0},
+  // ── CENTRO ──
+  {id:'centro_apto', l:'Apto no Centro',              bairro:'Centro',           zona:'centro',   i:'🏙️', v:500000,  rep_al:4,  rep_cp:10, perigo:1},
+  {id:'lapa',        l:'Apto na Lapa',                bairro:'Lapa',             zona:'centro',   i:'🎭', v:400000,  rep_al:3,  rep_cp:8,  perigo:1},
+  {id:'cinelandia',  l:'Apto na Cinelândia',          bairro:'Cinelândia',       zona:'centro',   i:'🎬', v:450000,  rep_al:4,  rep_cp:9,  perigo:1},
+  {id:'tijuca',      l:'Apto na Tijuca',              bairro:'Tijuca',           zona:'centro',   i:'🏢', v:700000,  rep_al:6,  rep_cp:16, perigo:0},
+  // ── ZONA NORTE (médio a barato) ──
+  {id:'meier',       l:'Apto no Méier',               bairro:'Méier',            zona:'norte',    i:'🏠', v:450000,  rep_al:3,  rep_cp:9,  perigo:1},
+  {id:'iraja',       l:'Casa em Irajá',               bairro:'Irajá',            zona:'norte',    i:'🏡', v:350000,  rep_al:2,  rep_cp:6,  perigo:1},
+  {id:'madureira',   l:'Apto em Madureira',           bairro:'Madureira',        zona:'norte',    i:'🏠', v:300000,  rep_al:1,  rep_cp:4,  perigo:2},
+  {id:'sao_cristov', l:'Apto em São Cristóvão',       bairro:'São Cristóvão',    zona:'norte',    i:'🏠', v:380000,  rep_al:2,  rep_cp:7,  perigo:1},
+  {id:'penha',       l:'Casa na Penha',               bairro:'Penha',            zona:'norte',    i:'🏡', v:250000,  rep_al:0,  rep_cp:3,  perigo:2},
+  // ── ZONA OESTE (barato) ──
+  {id:'campo_grande',l:'Casa em Campo Grande',        bairro:'Campo Grande',     zona:'oeste',    i:'🏡', v:280000,  rep_al:1,  rep_cp:4,  perigo:1},
+  {id:'santa_cruz',  l:'Casa em Santa Cruz',          bairro:'Santa Cruz',       zona:'oeste',    i:'🏠', v:200000,  rep_al:0,  rep_cp:2,  perigo:1},
+  {id:'bangu',       l:'Apto em Bangu',               bairro:'Bangu',            zona:'oeste',    i:'🏠', v:220000,  rep_al:0,  rep_cp:2,  perigo:2},
+  {id:'realengo',    l:'Casa em Realengo',            bairro:'Realengo',         zona:'oeste',    i:'🏡', v:180000,  rep_al:-1, rep_cp:1,  perigo:2},
+  // ── NITERÓI (caro mas distante) ──
+  {id:'icarai',      l:'Apto em Icaraí',              bairro:'Icaraí (Niterói)', zona:'niteroi',  i:'🌅', v:1400000, rep_al:11, rep_cp:29, perigo:0},
+  {id:'sao_fco_nit', l:'Apto em São Francisco',       bairro:'São Fco. (Niterói)',zona:'niteroi', i:'🏢', v:1000000, rep_al:8,  rep_cp:22, perigo:0},
+  {id:'centro_nit',  l:'Apto Centro de Niterói',      bairro:'Centro (Niterói)', zona:'niteroi',  i:'🏙️', v:600000,  rep_al:5,  rep_cp:13, perigo:1},
+  // ── BAIXADA FLUMINENSE (barato) ──
+  {id:'caxias_apto', l:'Apto em Duque de Caxias',     bairro:'D. de Caxias',     zona:'baixada',  i:'🏠', v:200000,  rep_al:-1, rep_cp:1,  perigo:2},
+  {id:'nova_iguacu', l:'Casa em Nova Iguaçu',         bairro:'Nova Iguaçu',      zona:'baixada',  i:'🏡', v:220000,  rep_al:-1, rep_cp:2,  perigo:2},
+  {id:'belford',     l:'Casa em Belford Roxo',        bairro:'Belford Roxo',     zona:'baixada',  i:'🏠', v:150000,  rep_al:-2, rep_cp:0,  perigo:2},
+  {id:'sao_joao',    l:'Apto em São João de Meriti',  bairro:'S.J. de Meriti',   zona:'baixada',  i:'🏠', v:160000,  rep_al:-2, rep_cp:0,  perigo:2},
+  {id:'nilop',       l:'Casa em Nilópolis',           bairro:'Nilópolis',        zona:'baixada',  i:'🏡', v:170000,  rep_al:-1, rep_cp:1,  perigo:2},
+];
+// Carros reais com preços de mercado Rio 2024
+const CARROS=[
+  {id:'kwid',    l:'Renault Kwid',          i:'🚗', v:65000,  rep:1,  cm:900,  desc:'Econômico urbano'},
+  {id:'mobi',    l:'Fiat Mobi',             i:'🚗', v:60000,  rep:1,  cm:850,  desc:'Compacto e econômico'},
+  {id:'hb20',    l:'Hyundai HB20',          i:'🚗', v:78000,  rep:2,  cm:1000, desc:'Popular e confiável'},
+  {id:'gol',     l:'VW Gol',               i:'🚗', v:68000,  rep:2,  cm:950,  desc:'Clássico brasileiro'},
+  {id:'onix',    l:'Chevrolet Onix',        i:'🚗', v:82000,  rep:2,  cm:1050, desc:'Mais vendido do Brasil'},
+  {id:'polo',    l:'VW Polo',              i:'🚙', v:95000,  rep:3,  cm:1200, desc:'Compacto premium'},
+  {id:'cronos',  l:'Fiat Cronos',          i:'🚙', v:88000,  rep:3,  cm:1100, desc:'Sedã espaçoso'},
+  {id:'tracker', l:'Chevrolet Tracker',    i:'🚙', v:130000, rep:5,  cm:1700, desc:'SUV compacto popular'},
+  {id:'t_cross', l:'VW T-Cross',           i:'🚙', v:145000, rep:5,  cm:1800, desc:'SUV compacto premium'},
+  {id:'compass', l:'Jeep Compass',         i:'🚙', v:195000, rep:8,  cm:2500, desc:'SUV médio de status'},
+  {id:'corolla', l:'Toyota Corolla',       i:'🚙', v:165000, rep:7,  cm:2200, desc:'Sedã executivo clássico'},
+  {id:'civic',   l:'Honda Civic',          i:'🚙', v:155000, rep:7,  cm:2100, desc:'Esportivo e confiável'},
+  {id:'tiguan',  l:'VW Tiguan',            i:'🛻', v:250000, rep:10, cm:3200, desc:'SUV executivo europeu'},
+  {id:'hr_v',    l:'Honda HR-V',           i:'🛻', v:175000, rep:7,  cm:2300, desc:'SUV urbano equipado'},
+  {id:'hilux',   l:'Toyota Hilux',         i:'🛻', v:280000, rep:9,  cm:3500, desc:'Robustez e status'},
+  {id:'bmw3',    l:'BMW Série 3',          i:'🚖', v:350000, rep:13, cm:4500, desc:'Luxo alemão premium'},
+  {id:'class_c', l:'Mercedes-Benz C 200',  i:'🚖', v:390000, rep:15, cm:5000, desc:'Status executivo máximo'},
+  {id:'audi_a4', l:'Audi A4',              i:'🚖', v:340000, rep:13, cm:4400, desc:'Luxo e tecnologia alemã'},
+  {id:'range_v', l:'Range Rover Velar',    i:'🏎️', v:490000, rep:18, cm:7000, desc:'SUV de ultraprestígio'},
+];
+const PAT={
+  escritorio:[
+    {id:'cw', l:'Coworking jurídico',  i:'💼', v:0,      cm:1800, rep:0},
+    {id:'sal',l:'Sala própria',        i:'🏛️', v:0,      cm:5000, rep:3},
+    {id:'esm',l:'Escritório médio',    i:'🏢', v:0,      cm:12000,rep:6},
+    {id:'esp',l:'Escritório premium',  i:'⚖️', v:0,      cm:28000,rep:12},
+  ],
+};
+// Itens de status — rep permanente, mas não exagerado
+// rep: pontos permanentes de rep ao comprar
 const SHOP=[
-  {id:'tn',i:'👔',n:'Terno italiano',    p:8000, d:'+15 reputação',         e:()=>{G.rep=Math.min(100,G.rep+15)}},
-  {id:'bj',i:'📚',n:'Biblioteca jurídica',p:15000,d:'+20 Pesquisa',          e:()=>{G.sk.pesquisa=Math.min(100,G.sk.pesquisa+20)}},
-  {id:'nb',i:'💻',n:'Notebook Pro',      p:12000,d:'+10 Peças e Pesquisa',  e:()=>{G.sk.peticao=Math.min(100,G.sk.peticao+10);G.sk.pesquisa=Math.min(100,G.sk.pesquisa+10)}},
-  {id:'pg',i:'🎓',n:'Pós-grad. OAB',    p:25000,d:'+25 Técnica',           e:()=>{G.sk.tecnica=Math.min(100,G.sk.tecnica+25)}},
-  {id:'rl',i:'⌚',n:'Relógio de luxo',   p:35000,d:'+8 rep',                e:()=>{G.rep=Math.min(100,G.rep+8)}},
-  {id:'ac',i:'🏋️',n:'Academia premium', p:3000, d:'+15 Saúde/Resiliência', e:()=>{G.vida=Math.min(100,G.vida+15);G.sk.pressao=Math.min(100,G.sk.pressao+10)}},
-  {id:'ai',i:'🤖',n:'Assistente IA Jur.',p:50000,d:'+15 em tudo',           e:()=>{Object.keys(G.sk).forEach(k=>G.sk[k]=Math.min(100,G.sk[k]+15))}},
-  {id:'cg',i:'✈️',n:'Congresso em Lisboa',p:18000,d:'+25 rep · +15 Network',e:()=>{G.rep=Math.min(100,G.rep+25);G.sk.networking=Math.min(100,G.sk.networking+15)}},
+  // Vestuário e status
+  {id:'terno_basic',i:'👔',n:'Terno de Alfaiataria',      p:4500, cat:'status',rep:2, d:'+2 rep permanente',         e:()=>{}},
+  {id:'terno_ital', i:'🧥',n:'Terno Italiano (Brioni)',    p:18000,cat:'status',rep:4, d:'+4 rep permanente',         e:()=>{}},
+  {id:'sapato',     i:'👞',n:'Sapatos de Couro Premium',   p:3200, cat:'status',rep:1, d:'+1 rep permanente',         e:()=>{}},
+  {id:'relogio_med',i:'⌚',n:'Relógio Suíço (Médio)',      p:22000,cat:'status',rep:3, d:'+3 rep permanente',         e:()=>{}},
+  {id:'relogio_lux',i:'🕰️',n:'Relógio de Luxo (Rolex)',   p:85000,cat:'status',rep:6, d:'+6 rep permanente',         e:()=>{}},
+  {id:'bolsa',      i:'👜',n:'Pasta Executiva Hermès',     p:12000,cat:'status',rep:2, d:'+2 rep permanente',         e:()=>{}},
+  // Ferramentas profissionais (não dão rep, mas ajudam skills)
+  {id:'bj',i:'📚',n:'Biblioteca Jurídica',                p:12000,cat:'prof', rep:0, d:'+8 Pesquisa/Leg.',          e:()=>{G.sk.pesquisa=Math.min(100,G.sk.pesquisa+8)}},
+  {id:'nb',i:'💻',n:'Notebook Pro',                       p:8500, cat:'prof', rep:0, d:'+6 Escrita · +6 Pesquisa',  e:()=>{G.sk.escrita=Math.min(100,G.sk.escrita+6);G.sk.pesquisa=Math.min(100,G.sk.pesquisa+6)}},
+  {id:'ai',i:'🤖',n:'Assistente IA Jurídico',             p:35000,cat:'prof', rep:1, d:'+8 em todas as skills',     e:()=>{Object.keys(G.sk).forEach(k=>G.sk[k]=Math.min(100,G.sk[k]+8))}},
+  // Experiências
+  {id:'cg',i:'✈️', n:'Congresso em Lisboa',               p:15000,cat:'exp',  rep:3, d:'+3 rep · +6 Networking',   e:()=>{G.sk.networking=Math.min(100,G.sk.networking+6)}},
+  {id:'ac',i:'🏋️',n:'Academia Premium (1 ano)',           p:3600, cat:'exp',  rep:0, d:'+6 Persuasão · +4 Oratória',e:()=>{G.sk.persuasao=Math.min(100,G.sk.persuasao+6);G.sk.oratoria=Math.min(100,G.sk.oratoria+4)}},
 ];
 const CURSOS=[
-  {id:'arb',n:'Curso de Arbitragem',       i:'⚖️',sem:6, c:15000,sk:'negociacao',b:25,creq:'jnr'},
-  {id:'mba',n:'MBA Compliance Corp.',      i:'🏛️',sem:16,c:55000,sk:'gestao',    b:30,creq:'pln'},
-  {id:'llm',n:'LLM Direito Tributário',    i:'📜',sem:12,c:40000,sk:'tecnica',   b:30,creq:'jnr'},
-  {id:'int',n:'Tributação Internacional',  i:'🌍',sem:8, c:22000,sk:'pesquisa',  b:20,creq:'pln'},
-  {id:'lit',n:'Litigância Estratégica',    i:'⚔️',sem:4, c:10000,sk:'oratoria',  b:20,creq:'ass'},
-  {id:'crf',n:'Especialização CARF/TRF',   i:'🔬',sem:10,c:30000,sk:'tecnica',   b:25,creq:'snr'},
-  {id:'ges',n:'MBA Gestão de Escritório',  i:'📊',sem:12,c:35000,sk:'gestao',    b:30,creq:'pln'},
+  {id:'arb',n:'Curso de Arbitragem',         i:'⚖️',sem:6, c:15000,sk:'negociacao',  b:25,sk2:'persuasao', b2:15,creq:'jnr'},
+  {id:'mba',n:'MBA Compliance Corp.',        i:'🏛️',sem:16,c:55000,sk:'gestao',      b:30,sk2:'networking', b2:10,creq:'pln'},
+  {id:'llm',n:'LLM Direito Tributário',      i:'📜',sem:12,c:40000,sk:'pesquisa',    b:30,sk2:'argumentacao',b2:15,creq:'jnr'},
+  {id:'int',n:'Tributação Internacional',    i:'🌍',sem:8, c:22000,sk:'pesquisa',    b:20,sk2:'negociacao',  b2:10,creq:'pln'},
+  {id:'lit',n:'Litigância Estratégica',      i:'⚔️',sem:4, c:10000,sk:'oratoria',    b:22,sk2:'persuasao',   b2:18,creq:'ass'},
+  {id:'crf',n:'Especialização CARF/TRF',     i:'🔬',sem:10,c:30000,sk:'argumentacao',b:25,sk2:'pesquisa',    b2:15,creq:'snr'},
+  {id:'ges',n:'MBA Gestão de Escritório',    i:'📊',sem:12,c:35000,sk:'gestao',      b:30,sk2:'networking',  b2:12,creq:'pln'},
+  {id:'esc',n:'Escrita Jurídica Avançada',   i:'✍️',sem:5, c:8000, sk:'escrita',     b:25,sk2:'argumentacao',b2:10,creq:'ass'},
+  {id:'tri',n:'Tribunal do Júri — Plenário', i:'🎭',sem:3, c:6000, sk:'oratoria',    b:20,sk2:'persuasao',   b2:20,creq:'jnr'},
 ];
+
+// ══ ESCRITÓRIOS POR BAIRRO/CIDADE ══
+// zona: zona onde fica o escritório (determina custo de deslocamento)
+// Deslocamento: mesmo bairro=a pé(R$0), zona adjacente=R$4/dia×22, zona distante=R$8/dia×22
+const ESCRITORIOS=[
+  // ── Advocacia solo (início) ──
+  {id:'solo', tier:1, nome:'Advocacia Solo (Home Office)', icon:'🏠', zona:'sul', bairro:'—', rep_min:0,
+   vagas:[{tipo:'contencioso',cargo:'jnr',sk_req:{},sal_mult:1.0,hon_mult:1.0}],
+   desc:'Você mesmo. Atendimento virtual. Sem deslocamento.'},
+
+  // ── CENTRO ──
+  {id:'lapa_adv',   tier:1, nome:'Castro & Rios Advogados',       icon:'⚖️', zona:'centro', bairro:'Lapa',        rep_min:8,
+   vagas:[{tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:15,argumentacao:15},sal_mult:1.05,hon_mult:1.1}],
+   desc:'Escritório da Lapa. Clientela de pequenas e médias causas. Bom para início de carreira.'},
+  {id:'cinelandia_f',tier:2,nome:'Ferreira, Nunes & Prado',       icon:'🏛️', zona:'centro', bairro:'Cinelândia',  rep_min:22,
+   vagas:[
+     {tipo:'peticionante',cargo:'jnr',sk_req:{escrita:25,argumentacao:20},sal_mult:1.15,hon_mult:1.2},
+     {tipo:'contencioso', cargo:'jnr',sk_req:{oratoria:25,persuasao:20}, sal_mult:1.15,hon_mult:1.2},
+   ],
+   desc:'Próximo ao TJ e aos tribunais. Movimento intenso de audiências e petições.'},
+  {id:'centro_grande',tier:3,nome:'Monteiro, Albuquerque & Assoc.',icon:'🏢', zona:'centro', bairro:'Centro',      rep_min:40,
+   vagas:[
+     {tipo:'peticionante',cargo:'pln',sk_req:{escrita:45,pesquisa:40,argumentacao:40},sal_mult:1.45,hon_mult:1.5},
+     {tipo:'consultivo',  cargo:'pln',sk_req:{negociacao:35,pesquisa:35,gestao:25},   sal_mult:1.4,hon_mult:1.45},
+   ],
+   desc:'Grande bancada no Centro. Causas tributárias e cíveis de médio e grande porte.'},
+
+  // ── ZONA SUL ──
+  {id:'botafogo_adv',tier:2, nome:'Braga & Silveira Advogados',   icon:'🏛️', zona:'sul', bairro:'Botafogo',   rep_min:25,
+   vagas:[
+     {tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:28,persuasao:22,argumentacao:22},sal_mult:1.2,hon_mult:1.25},
+   ],
+   desc:'Boutique de contencioso em Botafogo. Forte no TRT-1 e TJRJ.'},
+  {id:'ipanema_f',   tier:3, nome:'Cavalcante, Melo & Dias',      icon:'🏢', zona:'sul', bairro:'Ipanema',    rep_min:45,
+   vagas:[
+     {tipo:'societario',  cargo:'pln',sk_req:{negociacao:40,networking:35,gestao:30},sal_mult:1.55,hon_mult:1.6},
+     {tipo:'peticionante',cargo:'pln',sk_req:{escrita:50,argumentacao:45,pesquisa:42},sal_mult:1.5,hon_mult:1.55},
+   ],
+   desc:'Alto padrão em Ipanema. Clientes do mercado financeiro e do entretenimento.'},
+  {id:'leblon_elite',tier:4, nome:'Duarte Barros Associados',     icon:'🌟', zona:'sul', bairro:'Leblon',     rep_min:60,
+   vagas:[
+     {tipo:'societario',  cargo:'snr',sk_req:{negociacao:58,networking:55,gestao:50,argumentacao:52},sal_mult:2.0,hon_mult:2.1},
+     {tipo:'contencioso', cargo:'snr',sk_req:{oratoria:60,persuasao:58,argumentacao:58},             sal_mult:2.0,hon_mult:2.05},
+   ],
+   desc:'Referência em gestão patrimonial e contratos de luxo. Rede de contatos poderosa.'},
+
+  // ── ZONA SUDOESTE ──
+  {id:'barra_jur',   tier:2, nome:'Andrade & Torres Barra',       icon:'🏛️', zona:'sudoeste', bairro:'Barra da Tijuca', rep_min:20,
+   vagas:[
+     {tipo:'consultivo',  cargo:'jnr',sk_req:{negociacao:22,pesquisa:20},sal_mult:1.18,hon_mult:1.22},
+     {tipo:'peticionante',cargo:'jnr',sk_req:{escrita:22,argumentacao:18},sal_mult:1.15,hon_mult:1.2},
+   ],
+   desc:'Escritório moderno na Barra. Foco em contratos imobiliários e consultivo empresarial.'},
+  {id:'barra_top',   tier:3, nome:'Pereira & Cunha Advocacia',    icon:'🏢', zona:'sudoeste', bairro:'Barra da Tijuca', rep_min:42,
+   vagas:[
+     {tipo:'societario',  cargo:'pln',sk_req:{negociacao:38,networking:32,gestao:28},sal_mult:1.5,hon_mult:1.55},
+   ],
+   desc:'Foco em M&A e societário. Clientes de médio/grande porte do setor de serviços.'},
+  {id:'recreio_adv', tier:1, nome:'Moura Advogados',              icon:'⚖️', zona:'sudoeste', bairro:'Recreio', rep_min:5,
+   vagas:[{tipo:'peticionante',cargo:'jnr',sk_req:{escrita:12,argumentacao:10},sal_mult:1.03,hon_mult:1.08}],
+   desc:'Escritório local no Recreio. Clientela de condomínios e causas do cotidiano.'},
+
+  // ── ZONA NORTE ──
+  {id:'meier_jur',   tier:1, nome:'Souza & Lima Advogados',       icon:'⚖️', zona:'norte', bairro:'Méier', rep_min:0,
+   vagas:[{tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:10,argumentacao:10},sal_mult:1.0,hon_mult:1.05}],
+   desc:'Escritório de bairro no Méier. Causas trabalhistas e cíveis locais.'},
+  {id:'tijuca_adv',  tier:2, nome:'Costa Borges & Associados',    icon:'🏛️', zona:'centro', bairro:'Tijuca', rep_min:18,
+   vagas:[
+     {tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:20,argumentacao:18},sal_mult:1.12,hon_mult:1.18},
+     {tipo:'peticionante',cargo:'jnr',sk_req:{escrita:20,pesquisa:15},    sal_mult:1.1,hon_mult:1.15},
+   ],
+   desc:'Tijuca — boa localização, clientela consolidada de classe média.'},
+
+  // ── ZONA OESTE ──
+  {id:'campo_g_adv', tier:1, nome:'Ramos Advogados',              icon:'⚖️', zona:'oeste', bairro:'Campo Grande', rep_min:0,
+   vagas:[{tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:8,argumentacao:8},sal_mult:0.95,hon_mult:1.0}],
+   desc:'Escritório popular em Campo Grande. Alto volume, causas simples.'},
+  {id:'cg_top',      tier:2, nome:'Oliveira & Martins C.G.',      icon:'🏛️', zona:'oeste', bairro:'Campo Grande', rep_min:15,
+   vagas:[
+     {tipo:'peticionante',cargo:'jnr',sk_req:{escrita:18,argumentacao:15},sal_mult:1.08,hon_mult:1.12},
+   ],
+   desc:'Escritório estruturado em Campo Grande. Causas previdenciárias e trabalhistas.'},
+
+  // ── NITERÓI ──
+  {id:'icarai_adv',  tier:2, nome:'Faria & Drummond Niterói',     icon:'🏛️', zona:'niteroi', bairro:'Icaraí (Niterói)', rep_min:20,
+   vagas:[
+     {tipo:'contencioso', cargo:'jnr',sk_req:{oratoria:22,persuasao:18,argumentacao:20},sal_mult:1.2,hon_mult:1.22},
+     {tipo:'peticionante',cargo:'jnr',sk_req:{escrita:22,pesquisa:18},                  sal_mult:1.15,hon_mult:1.2},
+   ],
+   desc:'Boa reputação em Niterói. Distante do RJ — mas mercado próprio e crescente.'},
+  {id:'niteroi_grande',tier:3, nome:'Azevedo Pinheiro & Assoc.',  icon:'🏢', zona:'niteroi', bairro:'Centro (Niterói)', rep_min:38,
+   vagas:[
+     {tipo:'societario',  cargo:'pln',sk_req:{negociacao:35,networking:30,gestao:28},sal_mult:1.4,hon_mult:1.45},
+     {tipo:'peticionante',cargo:'pln',sk_req:{escrita:40,argumentacao:35,pesquisa:32},sal_mult:1.38,hon_mult:1.42},
+   ],
+   desc:'Maior bancada de Niterói. Forte em ambiental, marítimo e administrativo.'},
+
+  // ── BAIXADA ──
+  {id:'caxias_adv',  tier:1, nome:'Vieira Advogados — Caxias',    icon:'⚖️', zona:'baixada', bairro:'D. de Caxias', rep_min:0,
+   vagas:[{tipo:'contencioso',cargo:'jnr',sk_req:{oratoria:8,argumentacao:8},sal_mult:0.9,hon_mult:0.95}],
+   desc:'Escritório na Baixada. Alto volume de causas trabalhistas e previdenciárias.'},
+  {id:'nova_ig_adv', tier:1, nome:'Amaral & Luz — Nova Iguaçu',   icon:'⚖️', zona:'baixada', bairro:'Nova Iguaçu', rep_min:0,
+   vagas:[{tipo:'peticionante',cargo:'jnr',sk_req:{escrita:10,argumentacao:8},sal_mult:0.92,hon_mult:0.98}],
+   desc:'Escritório em Nova Iguaçu. Causas do cotidiano — família, consumidor e previdência.'},
+
+  // ── ELITE NACIONAL ──
+  {id:'pinnacle',tier:4, nome:'Pinnacle Jurídico',                 icon:'🌟', zona:'sul', bairro:'Ipanema', rep_min:65,
+   vagas:[
+     {tipo:'contencioso', cargo:'snr',sk_req:{oratoria:65,persuasao:62,argumentacao:62},sal_mult:2.1,hon_mult:2.1},
+     {tipo:'societario',  cargo:'snr',sk_req:{negociacao:62,networking:58,gestao:52},   sal_mult:2.1,hon_mult:2.1},
+   ],
+   desc:'Escritório nacional de elite. Casos bilionários. Escritório físico em Ipanema.'},
+  {id:'magnum', tier:5, nome:'Magnum, Duarte & Associados',        icon:'👑', zona:'sul', bairro:'Leblon', rep_min:80,
+   vagas:[
+     {tipo:'contencioso', cargo:'snr',sk_req:{oratoria:75,persuasao:72,argumentacao:72,pesquisa:65},sal_mult:2.8,hon_mult:2.8},
+     {tipo:'peticionante',cargo:'snr',sk_req:{escrita:80,argumentacao:75,pesquisa:70},               sal_mult:2.7,hon_mult:2.7},
+     {tipo:'societario',  cargo:'snr',sk_req:{negociacao:72,networking:68,gestao:65,argumentacao:62},sal_mult:2.85,hon_mult:2.85},
+   ],
+   desc:'O mais prestigioso do Brasil. No Leblon. Apenas os excepcionais chegam aqui.'},
+];
+
+// Custo de deslocamento mensal (22 dias úteis)
+function calcDeslocamento(){
+  const morid=G.pat.moradia||'kit';
+  const mor=MORADIAS.find(m=>m.id===morid);
+  const esc=escritorioAtual();
+  if(!mor||!esc||esc.id==='solo')return 0;
+  const zonaM=mor.zona;const zonaE=esc.zona;
+  if(zonaM===zonaE)return 0; // a pé (mesmo bairro/zona)
+  const z=ZONAS[zonaE];
+  if(z&&z.adjacentes&&z.adjacentes.includes(zonaM))return 4*22; // zona adjacente: R$4/dia
+  return 8*22; // zona distante: R$8/dia
+}
+
+const TIPO_LABEL={contencioso:'Contencioso',peticionante:'Peticionante',consultivo:'Consultivo',societario:'Societário/M&A'};
+const TIPO_SK_DESC={
+  contencioso:'Exige Oratória, Argumentação e Persuasão elevadas.',
+  peticionante:'Exige Escrita, Argumentação e Pesquisa elevadas.',
+  consultivo:'Exige Negociação, Gestão e Pesquisa elevadas.',
+  societario:'Exige Negociação, Networking e Gestão elevadas.',
+};
+
+function escritorioAtual(){
+  return ESCRITORIOS.find(e=>e.id===G.escritorio_id)||ESCRITORIOS[0];
+}
+
+function vagaAtual(){
+  const esc=escritorioAtual();
+  return esc.vagas.find(v=>v.tipo===G.vaga_tipo)||esc.vagas[0];
+}
+
+function calcRendaEscritorio(){
+  const c=cargo();const v=vagaAtual();
+  const sal_min=c.sal_min||1500;const sal_max=c.sal_max||1500;
+  const repF=Math.min(1,(G.rep||30)/100);
+  const salBase=Math.floor(sal_min+(sal_max-sal_min)*repF);
+  const mult=v?v.sal_mult:1;
+  return Math.floor(salBase*mult);
+}
+
+function verificarDemissao(){
+  if(!G.oab)return; // estagiário não é demitido
+  const esc=escritorioAtual();
+  if(esc.id==='solo')return; // autônomo não é demitido
+  const v=vagaAtual();
+  const repMin=Math.max(esc.rep_min-10, 5); // threshold de demissão = rep_min do escritório - 10
+  const derrotasConsec=G.derrotas_consecutivas||0;
+  if(G.rep<repMin||derrotasConsec>=5){
+    const motivo=G.rep<repMin?`reputação caiu para ${G.rep} (mínimo: ${repMin})`:`${derrotasConsec} derrotas consecutivas`;
+    G.escritorio_id='solo';G.vaga_tipo='contencioso';G.derrotas_consecutivas=0;
+    calcR();
+    noticia(`❌ Você foi desligado de <b>${esc.nome}</b> por ${motivo}. Voltando à advocacia solo.`,'urgente');
+    toast(`⚠️ Demitido de ${esc.nome}!`,'ko');
+    return true;
+  }
+  return false;
+}
+
+// Painel de escritórios
+function rEscritorios(cp){
+  const atual=escritorioAtual();const vagaAt=vagaAtual();
+  cp.innerHTML=`<div class="ph">
+    <div><div class="pt">🏢 Escritórios</div>
+    <div class="ps">Atual: <b>${atual.nome}</b> (Tier ${atual.tier}) · Rep: ${G.rep}/100</div></div>
+  </div>`;
+
+  // Card escritório atual
+  cp.innerHTML+=`<div class="cd" style="background:rgba(201,168,76,.06);border-color:rgba(201,168,76,.4)">
+    <div class="ct">${atual.icon} ${atual.nome} — Seu escritório atual</div>
+    <div style="font-size:.8rem;color:var(--sl);margin-bottom:.5rem">${atual.desc}</div>
+    <div style="display:flex;gap:.8rem;flex-wrap:wrap;font-size:.78rem">
+      <span>🏅 Tier ${atual.tier}</span>
+      <span>📋 Vaga: <b style="color:var(--d)">${TIPO_LABEL[vagaAt?.tipo||'contencioso']}</b></span>
+      <span>💰 Multiplicador salário: <b style="color:#69e08a">×${vagaAt?.sal_mult||1}</b></span>
+      <span>⚖️ Multiplicador honorários: <b style="color:#69e08a">×${vagaAt?.hon_mult||1}</b></span>
+    </div>
+    <div style="margin-top:.5rem;font-size:.75rem;color:${G.rep<(atual.rep_min-10)?'#ff8096':'var(--sl)'}">
+      ⚠️ Você será demitido se: rep < ${Math.max(atual.rep_min-10,5)} OU 5 derrotas consecutivas (atual: ${G.derrotas_consecutivas||0}/5)
+    </div>
+  </div>`;
+
+  cp.innerHTML+=`<div style="font-size:.75rem;color:var(--sl);text-transform:uppercase;letter-spacing:.1em;margin:.8rem 0 .4rem">Escritórios disponíveis no mercado</div>`;
+
+  ESCRITORIOS.forEach(esc=>{
+    if(esc.id===atual.id)return; // não mostrar o atual
+    const podeCandidatar=G.rep>=esc.rep_min;
+    const tierColors=['','#718096','#ffa726','#42a5f5','#ab47bc','#c9a84c'];
+    const tierColor=tierColors[esc.tier]||'#718096';
+
+    esc.vagas.forEach(v=>{
+      const tipoLabel=TIPO_LABEL[v.tipo];
+      const cargoReq=CARGOS.find(c=>c.id===v.cargo);
+      const skReqs=Object.entries(v.sk_req);
+      const skOk=skReqs.every(([k,min])=>(G.sk[k]||0)>=min);
+      const cargoOk=G.ci>=(CARGOS.findIndex(c=>c.id===v.cargo));
+      const tudo=podeCandidatar&&skOk&&cargoOk&&G.oab;
+
+      cp.innerHTML+=`<div class="cd" style="opacity:${tudo?1:0.55};border-color:${tudo?'rgba(201,168,76,.4)':'rgba(255,255,255,.1)'}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.4rem">
+          <div>
+            <span style="font-size:.95rem;font-weight:700;color:var(--cr)">${esc.icon} ${esc.nome}</span>
+            <span style="font-size:.7rem;background:rgba(${esc.tier>=4?'201,168,76':'100,150,200'},.2);color:${tierColor};padding:.1rem .45rem;border-radius:2px;margin-left:.5rem">Tier ${esc.tier}</span>
+          </div>
+          <span style="font-size:.78rem;color:#69e08a;font-weight:600">×${v.sal_mult} salário</span>
+        </div>
+        <div style="font-size:.76rem;color:var(--sl);margin-bottom:.4rem">${esc.desc}</div>
+        <div style="font-size:.76rem;color:var(--cr);margin-bottom:.3rem">📋 Vaga: <b>${tipoLabel}</b> · ${cargoReq?.label||''}</div>
+        <div style="font-size:.72rem;color:var(--sl);margin-bottom:.5rem">${TIPO_SK_DESC[v.tipo]}</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
+          <span style="font-size:.68rem;padding:.1rem .4rem;border-radius:2px;background:rgba(255,255,255,.06);color:${G.rep>=esc.rep_min?'#69e08a':'#ff8096'}">Rep ≥ ${esc.rep_min} (${G.rep})</span>
+          <span style="font-size:.68rem;padding:.1rem .4rem;border-radius:2px;background:rgba(255,255,255,.06);color:${cargoOk?'#69e08a':'#ff8096'}">${cargoReq?.label||''}</span>
+          ${skReqs.map(([k,min])=>{
+            const sk=SKDEF.find(s=>s.k===k);const val=G.sk[k]||0;
+            return`<span style="font-size:.68rem;padding:.1rem .4rem;border-radius:2px;background:rgba(255,255,255,.06);color:${val>=min?'#69e08a':'#ff8096'}">${sk?.l||k} ≥ ${min} (${val})</span>`;
+          }).join('')}
+        </div>
+        ${tudo
+          ?`<button class="bp" style="width:auto;margin:0;padding:.4rem 1rem;font-size:.75rem" onclick="entrarEscritorio('${esc.id}','${v.tipo}')">✅ Candidatar-se</button>`
+          :`<span style="font-size:.73rem;color:#ff8096">🔒 ${!G.oab?'OAB necessária':!podeCandidatar?'Reputação insuficiente':!cargoOk?'Cargo insuficiente':'Skills insuficientes'}</span>`}
+      </div>`;
+    });
+  });
+}
+
+function entrarEscritorio(escId,tipo){
+  const esc=ESCRITORIOS.find(e=>e.id===escId);
+  if(!esc)return;
+  const antigo=escritorioAtual().nome;
+  G.escritorio_id=escId;G.vaga_tipo=tipo;G.derrotas_consecutivas=0;
+  calcR();
+  noticia(`🏢 Você ingressou em <b>${esc.nome}</b> como ${TIPO_LABEL[tipo]}!`,'positivo');
+  toast(`🎉 Bem-vindo a ${esc.nome}!`,'ok');
+  gainXP(15);G.rep=Math.min(100,G.rep+2);
+  updTb();updR();sw('escritorios');autoSave();
+}
+
 const AUTORES=['João da Silva ME','Maria Oliveira Assoc.','Pedro Souza Ltda','Construtora Beta S/A','Ana Lima Prod.','Tech Solutions S/A','Farmácias Unidos S/A','Supermercado Alfa Ltda','Grupo Gama S/A'];
 const REUS=['Estado do Rio de Janeiro','Município do Rio de Janeiro','União Federal','Banco Central do Brasil','Seguros Confiança S/A','Empregador Principal Ltda','INSS','Receita Federal','IBAMA','SEFAZ-RJ'];
 const ENOMES=['Beatriz Fontes','Lucas Mendes','Ana Rocha','Gabriel Peixoto','Thiago Alves','Mariana Costa','Pedro Lima','Júlia Freitas','Rafael Nunes','Camila Borges'];
@@ -655,10 +1016,12 @@ function startGame(){
   const pub=CAREERS[selCareer].pub;
   G={nome,career:selCareer,esp,ci:0,oab:false,cprova:false,cdispon:false,anos:0,sg:0,sem:1,mes:0,ano:2024,
     xp:0,xpn:120,rep:30,vida:100,feliz:80,dinheiro:pub?8000:12000,renda:1500,wins:0,losses:0,
-    sk:{peticao:15,oratoria:12,pesquisa:18,negociacao:15,tecnica:15,gestao:8,networking:12,pressao:18},
-    pat:{moradia:'alg',transporte:'mtr',escritorio:'cw'},compras:[],cursos:[],estagiarios:[],procs:[],prfin:[],noticias:[],audpend:[]};
-  const bk={tributario:'tecnica',trabalhista:'oratoria',civil:'peticao',criminal:'oratoria',empresarial:'negociacao',constitucional:'pesquisa',ambiental:'pesquisa',previdenciario:'peticao'};
-  if(bk[esp])G.sk[bk[esp]]+=10;
+    escritorio_id:'solo',vaga_tipo:'contencioso',derrotas_consecutivas:0,
+    study_queue:[],financiamentos:{},moradias_compradas:{},mes_global:1,
+    sk:{oratoria:15,argumentacao:15,escrita:15,pesquisa:18,negociacao:12,persuasao:12,gestao:8,networking:10},
+    pat:{moradia:'kit',transporte:'onibus',escritorio:'cw'},compras:[],cursos:[],estagiarios:[],procs:[],prfin:[],noticias:[],audpend:[]};
+  const bk={tributario:'pesquisa',trabalhista:'oratoria',civil:'escrita',criminal:'argumentacao',empresarial:'negociacao',constitucional:'argumentacao',ambiental:'pesquisa',previdenciario:'escrita'};
+  if(bk[esp])G.sk[bk[esp]]+=12;
   if(pub)document.getElementById('nc').style.display='';
   G.procs.push(mkProc());calcR();
   document.getElementById('intro').style.display='none';
@@ -676,18 +1039,76 @@ function listaC(){
 }
 function cargo(){return listaC()[G.ci]||listaC()[0]}
 function prxC(){const l=listaC();return l[G.ci+1]||null}
-function calcR(){
-  const c=cargo();
-  const sal_min=c.sal_min||c.sal||1500;
-  const sal_max=c.sal_max||c.sal||1500;
-  const repF=Math.min(1,(G.rep||30)/100);
-  const salBase=Math.floor(sal_min+(sal_max-sal_min)*repF);
-  G.renda=salBase+(G.career==='adv_privado'?G.procs.reduce((a,p)=>a+p.hon*.04,0):0);
+
+// ══ CUSTO DE VIDA ══
+// Custo mensal de mantimentos baseado na reputação (quanto mais "status", mais gasta)
+function calcCustoVida(){
+  const rep=G.rep||30;
+  // R$1.200 base + R$80 por ponto de reputação acima de 20
+  return Math.floor(1200 + Math.max(0,rep-20)*80);
 }
+
+// Reputação total vinda do patrimônio + bens
+function calcRepPatrimonio(){
+  let rep=0;
+  // Moradia
+  const morRep={alg:0,apm:4,cas:7,cas_comp:15,cob:10,cob_comp:25};
+  rep+=(morRep[G.pat.moradia]||0);
+  // Transporte
+  const trRep={mtr:0,crp:2,sed:6,suv:10};
+  // Se financiado, rep menor enquanto paga
+  const trKey=G.pat.transporte;
+  if(G.financiamentos&&G.financiamentos[trKey]){
+    rep+=Math.floor((trRep[trKey]||0)*0.6); // 60% da rep enquanto financia
+  } else {
+    rep+=(trRep[trKey]||0);
+  }
+  // Compras de vestuário/status (cada item de rep)
+  if(G.compras){G.compras.forEach(cc=>{rep+=(cc.rep||0);});}
+  return Math.min(30,rep); // patrimônio contribui até 30pts de reputação
+}
+
+function calcR(){
+  if(typeof calcRendaEscritorio==='function'&&G.escritorio_id){
+    G.renda=calcRendaEscritorio();
+  } else {
+    const c=cargo();
+    const sal_min=c.sal_min||c.sal||1500;const sal_max=c.sal_max||c.sal||1500;
+    const repF=Math.min(1,(G.rep||30)/100);
+    G.renda=Math.floor(sal_min+(sal_max-sal_min)*repF);
+  }
+}
+function honMult(){return vagaAtual()?.hon_mult||1;}
 function calcD(){
   let d=0;
-  Object.entries(PAT).forEach(([cat,its])=>{const a=its.find(i=>i.id===G.pat[cat]);if(a)d+=a.cm;});
-  d+=G.estagiarios.length*6800; // estagiários: R$1.700/semana × 4 semanas = R$6.800/mês
+  // Escritório próprio (coworking/sala etc)
+  const esc2=PAT.escritorio.find(i=>i.id===G.pat.escritorio);if(esc2)d+=esc2.cm;
+  // Moradia: aluguel = 0.85% do valor ou própria (sem aluguel)
+  const morId=G.pat.moradia||'kit';
+  if(G.moradias_compradas&&G.moradias_compradas[morId]){
+    d+=0; // quitada — sem aluguel
+  } else {
+    const mor=MORADIAS.find(m=>m.id===morId);
+    if(mor)d+=Math.floor(mor.v*0.0085); // 0.85% do valor = aluguel mensal
+  }
+  // Transporte: carro (consumo mensal) ou ônibus (R$176/mês = R$8 × 22)
+  const carId=G.pat.transporte||'onibus';
+  if(carId==='onibus'){
+    d+=176; // transporte público base
+  } else {
+    const car=CARROS.find(cr=>cr.id===carId);
+    if(car)d+=car.cm; // combustível + seguro + IPVA
+  }
+  // Deslocamento até o escritório (por zona)
+  d+=calcDeslocamento();
+  // Parcelas de financiamento de carro
+  if(G.financiamentos){
+    Object.values(G.financiamentos).forEach(fin=>{
+      if(fin.parcelas_restantes>0)d+=fin.parcela_mensal;
+    });
+  }
+  // Estagiários: R$1.700/mês cada (só salário)
+  d+=G.estagiarios.length*1700;
   return d;
 }
 function prom(){
@@ -742,6 +1163,7 @@ function updTb(){
   document.getElementById('tbn').textContent=G.nome;
   document.getElementById('tbc').textContent=cargo().label;
   document.getElementById('tbe').textContent=G.esp.charAt(0).toUpperCase()+G.esp.slice(1);
+  if(typeof escritorioAtual==='function'){const en=escritorioAtual();const tbb=document.getElementById('tb-esc');if(tbb)tbb.textContent=en.icon+' '+en.nome;}
   document.getElementById('tbd').textContent=fmt(G.dinheiro);
   document.getElementById('tbr2').textContent=G.rep;
   document.getElementById('tbv').textContent=G.vida;
@@ -781,7 +1203,7 @@ function updR(){
 function sw(p){
   document.querySelectorAll('.ni').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
   const cp=document.getElementById('cp');cp.innerHTML='';
-  ({processos:rProcs,audiencias:rAuds,equipe:rEq,progressao:rProg,habilidades:rSkills,
+  ({processos:rProcs,audiencias:rAuds,equipe:rEq,escritorios:rEscritorios,progressao:rProg,habilidades:rSkills,
     cursos:rCursos,concurso:rConc,patrimonio:rPat,loja:rLoja,noticias:rNews})[p]?.(cp);
 }
 
@@ -1275,17 +1697,17 @@ function finalizarQuiz(){
   // Impacto no caso proporcional ao desempenho no quiz
   const impactoProgresso=acao==='audiencia'?[10,20,30,35][acertos]:// 0,1,2,3 acertos
                                             [5, 12,20,25][acertos];
-  const impactoChance=acao==='audiencia'?[-8,-2,6,12][acertos]:
-                                         [-4,0, 5, 9][acertos];
-  const impactoXP=[5,12,22,35][acertos];
-  const impactoRep=acao==='audiencia'?[-2,0,3,6][acertos]:[-1,0,2,4][acertos];
+  const impactoChance=acao==='audiencia'?[-5,-1,4,8][acertos]:
+                                         [-3,0, 3, 6][acertos];
+  const impactoXP=[3,8,15,22][acertos];
+  const impactoRep=acao==='audiencia'?[-1,0,2,4][acertos]:[-1,0,1,3][acertos];
   const impactoSk=acao==='audiencia'?'oratoria':'pesquisa';
 
   p.progresso=Math.min(100,(p.progresso||0)+impactoProgresso);
   p.chanceSucesso=Math.max(5,Math.min(95,(p.chanceSucesso||50)+impactoChance));
   gainXP(impactoXP);
   G.rep=Math.max(0,Math.min(100,G.rep+impactoRep));
-  gainSk(impactoSk,acertos>=2?3:1);
+  gainSk(impactoSk,acertos>=2?2:1);
 
   const cor=acertos===3?'#69e08a':acertos===2?'var(--d)':acertos===1?'#ffa726':'#ff8096';
   const msg=acertos===3?'Desempenho excelente! Caso avança decisivamente.':
@@ -1329,7 +1751,8 @@ function resolverSentenca(p){
     // Jogador venceu → parte contrária pode recorrer se cs do jogador < 70%
     const partRecorre=cs<70&&Math.random()<0.6;
     p.hon_total=Math.floor(p.valor*0.10); // 10% 1ª instância
-    G.dinheiro+=p.hon_total;G.wins++;G.rep=Math.min(100,G.rep+8);gainXP(40);
+    G.dinheiro+=Math.floor(p.hon_total*(honMult()));G.wins++;G.rep=Math.min(100,G.rep+5);gainXP(25);
+    G.derrotas_consecutivas=0;
     if(partRecorre&&p.instancia<4){
       // Parte contrária recorre → avança instância, honorários aumentam
       p.instancia=(p.instancia||1)+1;
@@ -1354,6 +1777,8 @@ function resolverSentenca(p){
   } else {
     // Jogador perdeu
     G.losses++;G.rep=Math.max(0,G.rep-5);gainXP(10);
+    G.derrotas_consecutivas=(G.derrotas_consecutivas||0)+1;
+    verificarDemissao();
     if(cs>=70){
       // Pode recorrer
       p.recurso_adv='pendente';
@@ -1413,7 +1838,7 @@ function acaoAcordo(procId){
   const valorAcordo=Math.floor(p.valor*(0.35+cs/200));
   const honAcordo=Math.floor(valorAcordo*0.10);
   if(acordoAceito){
-    G.dinheiro+=honAcordo;G.wins++;gainXP(20);G.rep=Math.min(100,G.rep+3);
+    G.dinheiro+=honAcordo;G.wins++;gainXP(12);G.rep=Math.min(100,G.rep+2);
     finP(procId);
     noticia(`🤝 Acordo: ${p.tipo} — ${fmt(valorAcordo)} · honorários: ${fmt(honAcordo)}`,'positivo');
     toast(`🤝 Acordo fechado! +${fmt(honAcordo)} honorários`,'ok');
@@ -1450,9 +1875,10 @@ function rProg(cp){
       ${G.anos>=3?'✅':'❌'} 3 anos de carreira (você: ${G.anos}) &nbsp;
       ${G.rep>=60?'✅':'❌'} Reputação ≥ 60 (você: ${G.rep})<br>
       ${G.ci>=5?'✅':'❌'} Advogado Sênior+ (atual: ${cargo().label})<br>
-      ${G.sk.tecnica>=70?'✅':'❌'} Técnica ≥ 70 (${G.sk.tecnica}) &nbsp;
+      ${G.sk.argumentacao>=70?'✅':'❌'} Argumentação ≥ 70 (${G.sk.argumentacao}) &nbsp;
       ${G.sk.pesquisa>=65?'✅':'❌'} Pesquisa ≥ 65 (${G.sk.pesquisa}) &nbsp;
-      ${G.sk.oratoria>=60?'✅':'❌'} Oratória ≥ 60 (${G.sk.oratoria})<br>
+      ${G.sk.oratoria>=60?'✅':'❌'} Oratória ≥ 60 (${G.sk.oratoria}) &nbsp;
+      ${G.sk.escrita>=55?'✅':'❌'} Escrita ≥ 55 (${G.sk.escrita})<br>
       ${G.cdispon?'<b style="color:#69e08a">✅ Concurso disponível! Acesse o menu.</b>':'<span style="color:#ffa726">⏳ Complete os pré-requisitos.</span>'}
     </div></div>`;
   }
@@ -1486,26 +1912,41 @@ function rSkills(cp){
     cp.innerHTML+=`<div class="cd" style="background:rgba(30,64,128,.1);border-color:rgba(30,64,128,.35)">
       <div class="ct" style="color:#90b8ff">📋 Prova da OAB</div>
       <div style="font-size:.78rem;color:var(--sl);line-height:1.7;margin-bottom:.75rem">
-        Requer <b style="color:${G.sk.tecnica>=45?'#69e08a':'#ff8096'}">Técnica ≥ 45 (${G.sk.tecnica})</b> e <b style="color:${G.sk.pesquisa>=40?'#69e08a':'#ff8096'}">Pesquisa ≥ 40 (${G.sk.pesquisa})</b>
+        Requer <b style="color:${G.sk.argumentacao>=45?'#69e08a':'#ff8096'}">Argumentação ≥ 45 (${G.sk.argumentacao})</b> e <b style="color:${G.sk.pesquisa>=40?'#69e08a':'#ff8096'}">Pesquisa ≥ 40 (${G.sk.pesquisa})</b>
       </div>
-      <button class="bp" style="width:auto;margin:0;padding:.48rem 1.1rem;font-size:.76rem" ${G.sk.tecnica<45||G.sk.pesquisa<40?'disabled':''} onclick="inicOAB()">Realizar Prova da OAB</button>
+      <button class="bp" style="width:auto;margin:0;padding:.48rem 1.1rem;font-size:.76rem" ${G.sk.argumentacao<45||G.sk.pesquisa<40?'disabled':''} onclick="inicOAB()">Realizar Prova da OAB</button>
     </div>`;
   } else {
     cp.innerHTML+=`<div style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);border-radius:2px;padding:.65rem;margin-bottom:.85rem;font-size:.78rem;color:#a5d6a7">✅ OAB aprovada</div>`;
   }
-  cp.innerHTML+=`<div class="cd"><div class="ct">⚡ Treinar</div><div class="sg">
-    ${SKDEF.map(s=>`<div>
-      <div class="sl2">${s.l}<span>${G.sk[s.k]}/100</span></div>
-      <div class="sb"><div class="sf ${s.cl}" style="width:${G.sk[s.k]}%"></div></div>
-      <button onclick="trnSk('${s.k}')" style="margin-top:.32rem;font-size:.67rem;padding:.18rem .52rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">Estudar +3</button>
-    </div>`).join('')}
+  // Show which skills are needed for current escritório job type
+  const tipoAtual=G.vaga_tipo||'contencioso';
+  const skPrincipais=TIPO_SKILLS[tipoAtual]||[];
+  cp.innerHTML+=`<div class="cd"><div class="ct">⚡ Skills — vaga atual: <span style="color:var(--d)">${TIPO_LABEL[tipoAtual]||tipoAtual}</span></div>
+  <div style="font-size:.75rem;color:var(--sl);margin-bottom:.75rem">${TIPO_SK_DESC[tipoAtual]}</div>
+  <div class="sg">
+    ${SKDEF.map(s=>{const isPrincipal=skPrincipais.includes(s.k);const val=G.sk[s.k]||0;return`<div style="border:1px solid rgba(${isPrincipal?'201,168,76':'255,255,255'},.${isPrincipal?'25':'08'});padding:.5rem;border-radius:2px">
+      <div class="sl2" style="color:${isPrincipal?'var(--d)':'var(--cr)'}">${isPrincipal?'⭐ ':''}<b>${s.l}</b><span>${val}/100</span></div>
+      <div style="font-size:.65rem;color:var(--sl);margin-bottom:.3rem">${s.desc}</div>
+      <div class="sb"><div class="sf ${s.cl}" style="width:${val}%"></div></div>
+      ${(G.study_queue||[]).some(sq=>sq.sk===s.k)
+        ?`<div style="font-size:.62rem;color:#ffa726;margin-top:.28rem">⏳ Estudo em andamento…</div>`
+        :`<button onclick="trnSk('${s.k}')" style="margin-top:.28rem;font-size:.64rem;padding:.16rem .5rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">📖 Estudar +2 · R$500 · 1 mês</button>`}
+    </div>`}).join('')}
   </div></div>`;
 }
 function trnSk(k){
   if(G.dinheiro<500){toast('Saldo insuficiente.','ko');return;}
-  G.dinheiro-=500;G.sk[k]=Math.min(100,G.sk[k]+3);
-  toast(`+3 em ${SKDEF.find(s=>s.k===k)?.l}`,'ok');gainXP(4);updTb();updR();
-  rSkills(document.getElementById('cp'));
+  // Verificar se já há estudo pendente dessa skill
+  if(!G.study_queue)G.study_queue=[];
+  if(G.study_queue.some(s=>s.sk===k)){toast('Já há um estudo dessa skill em andamento!','ko');return;}
+  G.dinheiro-=500;
+  const conclusao=(G.mes_global||1)+1;
+  G.study_queue.push({sk:k,ganho:2,mes_conclusao:conclusao});
+  const skL=SKDEF.find(s=>s.k===k)?.l||k;
+  toast(`📖 Estudando ${skL} — resultado em 1 mês!`,'ok');
+  gainXP(2);updTb();updR();
+  rSkills(document.getElementById('cp'));autoSave();
 }
 
 // ── OAB — banco de questões estático por especialização ──
@@ -1609,7 +2050,7 @@ function rConc(cp){
     ${G.anos>=3?'✅':'❌'} 3 anos de carreira (${G.anos})<br>
     ${G.rep>=60?'✅':'❌'} Reputação ≥ 60 (${G.rep}) &nbsp;
     ${G.ci>=5?'✅':'❌'} Advogado Sênior+ (${cargo().label})<br>
-    ${G.sk.tecnica>=70?'✅':'❌'} Técnica ≥ 70 (${G.sk.tecnica}) &nbsp;
+    ${G.sk.argumentacao>=70?'✅':'❌'} Argumentação ≥ 70 (${G.sk.argumentacao}) &nbsp;
     ${G.sk.pesquisa>=65?'✅':'❌'} Pesquisa ≥ 65 (${G.sk.pesquisa}) &nbsp;
     ${G.sk.oratoria>=60?'✅':'❌'} Oratória ≥ 60 (${G.sk.oratoria})
   </div></div>`;
@@ -1672,11 +2113,11 @@ function fchEx(ap,tipo){
   document.getElementById('exam').classList.add('h');
   if(!ap)return;
   if(tipo==='oab'){
-    G.oab=true;G.ci=3;calcR();gainXP(80);G.rep=Math.min(100,G.rep+20);
+    G.oab=true;G.ci=3;calcR();gainXP(50);G.rep=Math.min(100,G.rep+10);
     toast('🏆 OAB aprovada! Você agora pode advogar!','ok');
     noticia('OAB aprovada! Cargo: Advogado(a) Júnior.','positivo');chkConc();
   } else if(tipo==='concurso'){
-    G.cprova=true;G.ci=0;calcR();gainXP(150);G.rep=Math.min(100,G.rep+30);
+    G.cprova=true;G.ci=0;calcR();gainXP(80);G.rep=Math.min(100,G.rep+15);
     toast(`🏛️ Aprovado(a) no ${CAREERS[G.career].cl}!`,'ok');
     noticia(`Concurso aprovado! Cargo: ${cargo().label}`,'positivo');
   }
@@ -1684,42 +2125,127 @@ function fchEx(ap,tipo){
 }
 function chkConc(){
   if(!CAREERS[G.career].pub||G.cprova)return;
-  const ok=G.oab&&G.anos>=3&&G.rep>=60&&G.ci>=5&&G.sk.tecnica>=70&&G.sk.pesquisa>=65&&G.sk.oratoria>=60;
+  const ok=G.oab&&G.anos>=3&&G.rep>=60&&G.ci>=5&&G.sk.argumentacao>=70&&G.sk.pesquisa>=65&&G.sk.oratoria>=60&&G.sk.escrita>=55;
   if(ok&&!G.cdispon){G.cdispon=true;toast('🎉 Pré-requisitos do concurso atingidos!','ok');noticia(`Concurso ${CAREERS[G.career].cl} disponível!`,'positivo');}
 }
+
+// Banco de candidatos por área do escritório atual
+const CANDIDATOS_BASE={
+  tributario:[
+    {n:'Ana Paula Drummond',fac:'PUC-Rio',sk_dest:'pesquisa',nota:8.2,av:'👩‍💼',desc:'Ex-monitora de Direito Tributário. Excelente em pesquisa legislativa.',sal:1700},
+    {n:'Bruno Cavalcante',fac:'UERJ',sk_dest:'argumentacao',nota:7.5,av:'👨‍💼',desc:'Participou de grupo de pesquisa em CARF. Boa argumentação técnica.',sal:1700},
+    {n:'Camila Rocha',fac:'FGV Direito',sk_dest:'escrita',nota:8.8,av:'👩‍💼',desc:'Ganhou prêmio de melhor artigo tributário da FGV. Escrita impecável.',sal:1700},
+    {n:'Diego Fontes',fac:'UFF',sk_dest:'negociacao',nota:7.0,av:'👨‍💼',desc:'Trabalhou em escritório de consultoria tributária. Bom relacionamento com clientes.',sal:1700},
+    {n:'Elena Souza',fac:'IBMEC',sk_dest:'pesquisa',nota:7.8,av:'👩‍💼',desc:'Especializando em reforma tributária (LC 214/2025). Atualizada.',sal:1700},
+  ],
+  trabalhista:[
+    {n:'Felipe Neri',fac:'UERJ',sk_dest:'oratoria',nota:8.0,av:'👨‍💼',desc:'Simula audiências trabalhistas há 2 anos. Boa presença em TRT.',sal:1700},
+    {n:'Gabriela Lima',fac:'PUC-Rio',sk_dest:'escrita',nota:8.5,av:'👩‍💼',desc:'Estagiou na OAB/RJ. Peças trabalhistas muito bem elaboradas.',sal:1700},
+    {n:'Henrique Costa',fac:'UFRJ',sk_dest:'pesquisa',nota:7.3,av:'👨‍💼',desc:'Pesquisador em flexibilização trabalhista pós-reforma 2017.',sal:1700},
+    {n:'Isadora Mendes',fac:'FGV Direito',sk_dest:'argumentacao',nota:8.1,av:'👩‍💼',desc:'Participou de audiências de custódia na DPE. Argumentação sólida.',sal:1700},
+    {n:'João Victor Pinto',fac:'UCB',sk_dest:'negociacao',nota:6.9,av:'👨‍💼',desc:'Bom em sessões de mediação trabalhista. Temperamento calmo.',sal:1700},
+  ],
+  civil:[
+    {n:'Karla Duarte',fac:'UERJ',sk_dest:'escrita',nota:8.4,av:'👩‍💼',desc:'Destaque em prática forense cível. Peças com fundamentação densa.',sal:1700},
+    {n:'Lucas Amaral',fac:'PUC-Rio',sk_dest:'pesquisa',nota:7.6,av:'👨‍💼',desc:'Monitoria em Direito Civil. Bom domínio do CC e CPC.',sal:1700},
+    {n:'Mariana Borges',fac:'IBMEC',sk_dest:'negociacao',nota:7.9,av:'👩‍💼',desc:'Participou de mediação do CEJUSC. Excelente em acordos.',sal:1700},
+    {n:'Natan Freire',fac:'UFF',sk_dest:'oratoria',nota:7.2,av:'👨‍💼',desc:'Membro do Núcleo de Prática Jurídica. Boa postura em audiências.',sal:1700},
+    {n:'Olivia Castro',fac:'UFRJ',sk_dest:'argumentacao',nota:8.0,av:'👩‍💼',desc:'Pesquisa em responsabilidade civil. Teses sólidas e bem fundamentadas.',sal:1700},
+  ],
+  criminal:[
+    {n:'Paulo Mendes',fac:'UERJ',sk_dest:'oratoria',nota:8.3,av:'👨‍💼',desc:'Participou de Júri Simulado e ganhou 3 edições. Oratória excepcional.',sal:1700},
+    {n:'Queila Santos',fac:'PUC-Rio',sk_dest:'argumentacao',nota:7.7,av:'👩‍💼',desc:'Fez extensão na DPE em casos criminais. Argumentação técnica robusta.',sal:1700},
+    {n:'Rafael Torres',fac:'UFRJ',sk_dest:'pesquisa',nota:7.5,av:'👨‍💼',desc:'Focado em direito penal econômico e lavagem de dinheiro.',sal:1700},
+    {n:'Sabrina Viana',fac:'UCB',sk_dest:'persuasao',nota:8.1,av:'👩‍💼',desc:'Participa de grupo de direitos fundamentais. Muito persuasiva.',sal:1700},
+    {n:'Thiago Barros',fac:'IBMEC',sk_dest:'negociacao',nota:7.0,av:'👨‍💼',desc:'Estágio em delegacia especializada. Bom em colaboração premiada.',sal:1700},
+  ],
+  empresarial:[
+    {n:'Ursula Faria',fac:'FGV Direito',sk_dest:'negociacao',nota:8.6,av:'👩‍💼',desc:'Destaque em M&A no escritório escola da FGV. Excelente em negociações.',sal:1700},
+    {n:'Vitor Lemos',fac:'PUC-Rio',sk_dest:'escrita',nota:8.2,av:'👨‍💼',desc:'Especializado em contratos empresariais. Contratos muito bem redigidos.',sal:1700},
+    {n:'Wesley Cunha',fac:'IBMEC',sk_dest:'pesquisa',nota:7.4,av:'👨‍💼',desc:'Pesquisa em recuperação judicial e Lei 11.101/2005.',sal:1700},
+    {n:'Ximena Prado',fac:'UERJ',sk_dest:'argumentacao',nota:7.8,av:'👩‍💼',desc:'Participou de arbitragem simulada da CCI. Boa técnica empresarial.',sal:1700},
+    {n:'Yara Moura',fac:'UFF',sk_dest:'gestao',nota:7.1,av:'👩‍💼',desc:'Administração e Direito. Boa gestão de documentos e prazos.',sal:1700},
+  ],
+  previdenciario:[
+    {n:'Zeno Albuquerque',fac:'UFRJ',sk_dest:'pesquisa',nota:7.9,av:'👨‍💼',desc:'Pesquisa em benefícios previdenciários rurais. Bom domínio da Lei 8.213.',sal:1700},
+    {n:'Alice Pereira',fac:'UCB',sk_dest:'escrita',nota:7.5,av:'👩‍💼',desc:'Peças bem fundamentadas em causas do JEF. Organizada.',sal:1700},
+    {n:'Bento Ferraz',fac:'UFF',sk_dest:'oratoria',nota:7.2,av:'👨‍💼',desc:'Participou de audiências no JEF. Boa comunicação com peritos.',sal:1700},
+    {n:'Célia Nunes',fac:'IBMEC',sk_dest:'negociacao',nota:7.6,av:'👩‍💼',desc:'Experiência em acordos com INSS. Boa relação com servidores.',sal:1700},
+    {n:'Daniel Luz',fac:'UERJ',sk_dest:'argumentacao',nota:8.0,av:'👨‍💼',desc:'Pesquisa em revisão da vida toda (Tema 1.102 STF). Atualizado.',sal:1700},
+  ],
+};
+function getCandidatos(){
+  const esp=G.esp||'civil';
+  const base=CANDIDATOS_BASE[esp]||CANDIDATOS_BASE.civil;
+  // Gerar variação de desempenho aleatória por rodada
+  return base.map(b=>({...b,desemp:Math.max(50,Math.min(95,Math.round(b.nota*9+rnd(10)-5)))}));
+}
+let candidatos_atuais=null;
 
 // ── EQUIPE ──
 function rEq(cp){
   const ok=G.ci>=3;
+  const custo_eq=G.estagiarios.length*1700;
   cp.innerHTML=`<div class="ph">
-    <div><div class="pt">👔 Equipe</div><div class="ps">${G.estagiarios.length} membro(s) · ${fmt(G.estagiarios.length*1200)}/mês</div></div>
-    <button class="bp" style="width:auto;margin:0;padding:.45rem .85rem;font-size:.73rem" onclick="contrEst()" ${!ok?'disabled':''}>+ Contratar</button>
+    <div><div class="pt">👔 Equipe</div><div class="ps">${G.estagiarios.length} membro(s) · ${fmt(custo_eq)}/mês · Área: <b>${G.esp}</b></div></div>
+    <button class="bp" style="width:auto;margin:0;padding:.45rem .85rem;font-size:.73rem" onclick="abrirContratacao()" ${!ok?'disabled':''}>+ Contratar</button>
   </div>`;
   if(!ok)cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:1.5rem">🔒 Disponível a partir de Advogado Júnior.</div>`;
-  if(!G.estagiarios.length)cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:1.5rem">Nenhum membro ainda.</div>`;
+  if(!G.estagiarios.length)cp.innerHTML+=`<div class="cd" style="text-align:center;color:var(--sl);padding:1.5rem">Nenhum membro na equipe.</div>`;
   G.estagiarios.forEach((e,i)=>{
+    const skL=SKDEF.find(s=>s.k===e.sk_dest)?.l||'—';
     cp.innerHTML+=`<div class="ec"><div class="ea">${e.av}</div>
-      <div class="ei"><div class="en">${e.nome}</div><div class="ear">${e.area} · ${e.fac}</div>
-        <div class="ep">⚡ ${e.d}% · ${e.s} sem.</div>
-        <div style="margin-top:.22rem;height:4px;background:rgba(255,255,255,.1);border-radius:2px;width:130px;overflow:hidden"><div style="height:100%;width:${e.d}%;background:var(--d)"></div></div>
+      <div class="ei">
+        <div class="en">${e.nome}</div>
+        <div class="ear">${e.fac} · <span style="color:var(--d)">${skL}</span></div>
+        <div class="ep">⚡ Desempenho: ${e.desemp}% · ${e.s} mes(es)</div>
+        <div style="margin-top:.22rem;height:4px;background:rgba(255,255,255,.1);border-radius:2px;width:130px;overflow:hidden"><div style="height:100%;width:${e.desemp}%;background:var(--d)"></div></div>
+        <div style="font-size:.63rem;color:#ffa726;margin-top:.18rem">Salário: ${fmt(e.sal||1700)}/mês</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:.32rem">
-        <button onclick="delEst(${i})" style="font-size:.68rem;padding:.26rem .52rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">Delegar</button>
-        <button onclick="demEst(${i})" style="font-size:.68rem;padding:.26rem .52rem;background:rgba(139,38,53,.15);border:1px solid rgba(139,38,53,.4);color:#ff8096;border-radius:2px;cursor:pointer">Dispensar</button>
+        <button onclick="delEst(${i})" style="font-size:.65rem;padding:.24rem .5rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">Delegar</button>
+        <button onclick="demEst(${i})" style="font-size:.65rem;padding:.24rem .5rem;background:rgba(139,38,53,.12);border:1px solid rgba(139,38,53,.4);color:#ff8096;border-radius:2px;cursor:pointer">Dispensar</button>
       </div>
     </div>`;
   });
 }
-function contrEst(){
-  if(G.estagiarios.length>=6){toast('Máximo 6.','');return;}
-  const areas=['Trabalhista','Civil','Tributário','Empresarial','Criminal','Previdenciário'];
-  G.estagiarios.push({nome:ENOMES[rnd(ENOMES.length)],area:areas[rnd(areas.length)],fac:FACS[rnd(FACS.length)],av:['👨‍💼','👩‍💼','🧑‍💼'][rnd(3)],d:55+rnd(35),s:0});
-  toast('Novo membro contratado!','ok');gainXP(8);updR();rEq(document.getElementById('cp'));
+
+function abrirContratacao(){
+  if(G.estagiarios.length>=6){toast('Máximo 6 membros.','');return;}
+  candidatos_atuais=getCandidatos();
+  const cp=document.getElementById('cp');
+  cp.innerHTML+=`<div class="cd" id="contrat-panel" style="border-color:rgba(201,168,76,.5)">
+    <div class="ct">📋 Candidatos disponíveis — área <b>${G.esp}</b></div>
+    <div style="font-size:.73rem;color:var(--sl);margin-bottom:.75rem">Selecione um candidato para contratar. Salário: R$ 1.700/mês.</div>
+    ${candidatos_atuais.map((cand,i)=>{
+      const skL=SKDEF.find(s=>s.k===cand.sk_dest)?.l||cand.sk_dest;
+      return`<div style="display:flex;align-items:center;gap:.75rem;background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:.7rem;margin-bottom:.45rem">
+        <div style="font-size:1.6rem;flex-shrink:0">${cand.av}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.88rem;color:var(--cr)">${cand.n}</div>
+          <div style="font-size:.72rem;color:var(--sl)">${cand.fac} · Nota: <b style="color:var(--d)">${cand.nota}</b></div>
+          <div style="font-size:.71rem;color:var(--cr);margin:.15rem 0">${cand.desc}</div>
+          <div style="font-size:.68rem;color:var(--d)">⭐ Destaque em: ${skL}</div>
+        </div>
+        <button onclick="contratarCandidato(${i})" style="font-size:.72rem;padding:.38rem .75rem;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--d);border-radius:2px;cursor:pointer;white-space:nowrap">Contratar</button>
+      </div>`;
+    }).join('')}
+    <button onclick="rEq(document.getElementById('cp'))" style="font-size:.72rem;padding:.35rem .8rem;background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--sl);border-radius:2px;cursor:pointer;margin-top:.3rem">Cancelar</button>
+  </div>`;
+}
+
+function contratarCandidato(idx){
+  if(!candidatos_atuais||!candidatos_atuais[idx])return;
+  if(G.estagiarios.length>=6){toast('Máximo 6 membros.','');return;}
+  const cand=candidatos_atuais[idx];
+  G.estagiarios.push({nome:cand.n,fac:cand.fac,sk_dest:cand.sk_dest,av:cand.av,desemp:cand.desemp,sal:cand.sal||1700,s:0});
+  toast(`✅ ${cand.n} contratado(a)! -${fmt(cand.sal||1700)}/mês`,'ok');
+  gainXP(5);updR();rEq(document.getElementById('cp'));autoSave();
 }
 function delEst(i){
   const e=G.estagiarios[i],p=G.procs[rnd(G.procs.length)];
   if(!p){toast('Nenhum caso.','');return;}
-  if(Math.random()<e.d/100){gainXP(10);G.sk.gestao=Math.min(100,G.sk.gestao+1);toast(`${e.nome} avançou o caso!`,'ok');const fs=['Petição Inicial','Contestação','Instrução','Audiência'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
+  if(Math.random()<e.d/100){gainXP(6);G.sk.gestao=Math.min(100,G.sk.gestao+1);toast(`${e.nome} avançou o caso!`,'ok');const fs=['Petição Inicial','Contestação','Instrução','Audiência'];const ix=fs.indexOf(p.fase);if(ix<fs.length-1)p.fase=fs[ix+1];}
   else toast(`${e.nome} encontrou dificuldades.`,'ko');
 }
 function demEst(i){const e=G.estagiarios[i];G.estagiarios.splice(i,1);toast(`${e.nome} dispensado(a).`,'');rEq(document.getElementById('cp'));}
@@ -1735,7 +2261,7 @@ function rCursos(cp){
         <div style="font-size:1.75rem">${c.i}</div>
         <div style="flex:1">
           <div style="font-weight:600;font-size:.9rem;color:var(--cr);margin-bottom:.16rem">${c.n}</div>
-          <div style="font-size:.71rem;color:var(--sl)">${c.sem} semanas · +${c.b} ${skL}</div>
+          <div style="font-size:.71rem;color:var(--sl)">${c.sem} sem. · +${c.b} ${skL}${c.sk2?` · +${c.b2||10} ${SKDEF.find(s=>s.k===c.sk2)?.l||''}`:''}</div>
           <div style="font-size:.78rem;color:#69e08a;margin-top:.22rem">${fmt(c.c)}</div>
         </div>
         <div>${feito?`<span class="owl">✓ Concluído</span>`:bloq?`<span style="font-size:.7rem;color:var(--sl)">🔒 Req: ${c.creq}</span>`:G.dinheiro<c.c?`<span style="font-size:.7rem;color:#ff8096">Sem saldo</span>`:`<button class="bby" onclick="fazerC('${c.id}')">Matricular</button>`}</div>
@@ -1745,43 +2271,203 @@ function rCursos(cp){
 }
 function fazerC(id){
   const c=CURSOS.find(x=>x.id===id);if(!c||G.dinheiro<c.c||G.cursos.includes(c.id))return;
-  G.dinheiro-=c.c;G.sk[c.sk]=Math.min(100,G.sk[c.sk]+c.b);G.cursos.push(c.id);gainXP(40);G.rep=Math.min(100,G.rep+8);
-  toast(`${c.i} ${c.n} concluído!`,'ok');updTb();updR();rCursos(document.getElementById('cp'));
+  G.dinheiro-=c.c;G.sk[c.sk]=Math.min(100,G.sk[c.sk]+c.b);
+  if(c.sk2&&G.sk[c.sk2]!==undefined)G.sk[c.sk2]=Math.min(100,G.sk[c.sk2]+(c.b2||10));
+  G.cursos.push(c.id);gainXP(25);G.rep=Math.min(100,G.rep+4);
+  const extra=c.sk2?` · +${c.b2||10} ${SKDEF.find(s=>s.k===c.sk2)?.l||c.sk2}`:'';
+  toast(`${c.i} ${c.n} concluído! +${c.b} ${SKDEF.find(s=>s.k===c.sk)?.l||c.sk}${extra}`,'ok');
+  updTb();updR();rCursos(document.getElementById('cp'));autoSave();
+}
+
+// Financiamentos
+function processarFinanciamentos(){
+  if(!G.financiamentos)return;
+  Object.entries(G.financiamentos).forEach(([k,fin])=>{
+    if(fin.parcelas_restantes>0){
+      fin.parcelas_restantes--;
+      if(fin.parcelas_restantes===0){
+        noticia(`🚗 Financiamento do <b>${fin.nome}</b> quitado! O bem agora é 100% seu.`,'positivo');
+      }
+    }
+  });
+}
+function processarStudyQueue(){
+  if(!G.study_queue)return;
+  const prontos=G.study_queue.filter(s=>s.mes_conclusao<=G.mes_global);
+  prontos.forEach(s=>{
+    G.sk[s.sk]=Math.min(100,(G.sk[s.sk]||0)+s.ganho);
+    toast(`📚 Estudo concluído! +${s.ganho} em ${SKDEF.find(x=>x.k===s.sk)?.l||s.sk}`,'ok');
+    noticia(`📚 Estudo concluído: +${s.ganho} em <b>${SKDEF.find(x=>x.k===s.sk)?.l||s.sk}</b>`,'positivo');
+  });
+  G.study_queue=G.study_queue.filter(s=>s.mes_conclusao>G.mes_global);
 }
 
 // ── PATRIMÔNIO ──
 function rPat(cp){
-  const d=calcD();
-  cp.innerHTML=`<div class="ph"><div><div class="pt">🏠 Patrimônio</div><div class="ps">Bens e finanças</div></div></div>
+  const d=calcD();const cv=calcCustoVida();const repPat=calcRepPatrimonio();
+  const morId=G.pat.moradia||'kit';const carId=G.pat.transporte||'mtr';
+  const mor=MORADIAS.find(m=>m.id===morId)||MORADIAS[0];
+  const car=CARROS.find(c=>c.id===carId)||CARROS[0];
+  const morComprada=G.moradias_compradas&&G.moradias_compradas[morId];
+  const carFin=G.financiamentos&&G.financiamentos[carId];
+
+  const desl2=calcDeslocamento();
+  cp.innerHTML=`<div class="ph"><div><div class="pt">🏠 Patrimônio</div><div class="ps">Reputação total: <b style="color:var(--d)">${G.rep}/100</b> · Patrimônio contribui: <b style="color:var(--d)">+${repPat}</b></div></div></div>
   <div class="ptg">
     <div class="pti"><div class="pii">💰</div><div class="pil">Saldo</div><div class="piv">${fmt(G.dinheiro)}</div></div>
     <div class="pti"><div class="pii">📈</div><div class="pil">Renda/mês</div><div class="piv">${fmt(G.renda)}</div></div>
     <div class="pti"><div class="pii">💸</div><div class="pil">Despesas/mês</div><div class="piv" style="color:#ff8096">${fmt(d)}</div></div>
-    <div class="pti"><div class="pii">🏦</div><div class="pil">Pat. total</div><div class="piv">${fmt(G.dinheiro+G.compras.reduce((a,c)=>a+c.v,0))}</div></div>
+    <div class="pti"><div class="pii">🍽️</div><div class="pil">Custo vida</div><div class="piv" style="color:#ffa726">${fmt(cv)}/mês</div></div>
+    <div class="pti"><div class="pii">🚇</div><div class="pil">Deslocamento</div><div class="piv" style="color:#ffa726">${fmt(desl2)}/mês</div></div>
+    <div class="pti"><div class="pii">📊</div><div class="pil">Saldo líquido</div><div class="piv" style="color:${G.renda-d-cv>0?'#69e08a':'#ff8096'}">${fmt(G.renda-d-cv)}</div></div>
   </div>`;
-  const cats={moradia:'🏠 Moradia',transporte:'🚗 Transporte',escritorio:'💼 Escritório'};
-  Object.entries(PAT).forEach(([cat,its])=>{
-    const at=G.pat[cat];
-    cp.innerHTML+=`<div class="cd"><div class="ct">${cats[cat]}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.45rem">
-        ${its.map(it=>`<div style="background:rgba(255,255,255,${it.id===at?.1:.03});border:1px solid rgba(201,168,76,${it.id===at?.6:.2});padding:.62rem;border-radius:2px;text-align:center">
-          <div style="font-size:1.35rem">${it.i}</div>
-          <div style="font-size:.74rem;font-weight:600;color:var(--cr);margin:.18rem 0">${it.l}</div>
-          ${it.v>0?`<div style="font-size:.66rem;color:#69e08a">${fmt(it.v)}</div>`:''}
-          <div style="font-size:.64rem;color:var(--sl)">${fmt(it.cm)}/mês</div>
-          ${it.id===at?`<div style="font-size:.66rem;color:var(--d);margin-top:.22rem">✓ Atual</div>`:
-            `<button onclick="comprPat('${cat}','${it.id}')" style="margin-top:.28rem;font-size:.66rem;padding:.16rem .48rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer">${it.v>0?'Comprar':'Mudar'}</button>`}
+
+  // ── MORADIA ──
+  cp.innerHTML+=`<div class="cd"><div class="ct">🏠 Moradia — ${morComprada?'Casa própria ✓':'Aluguel'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.42rem">
+      ${MORADIAS.map(m=>{
+        const isAt=m.id===morId;const isComp=G.moradias_compradas&&G.moradias_compradas[m.id];
+        const aluguel=Math.floor(m.v*0.0085);const podeCom=G.dinheiro>=m.v;const podeAlug=!isAt;
+        return`<div style="background:rgba(255,255,255,${isAt?.1:.03});border:1px solid rgba(201,168,76,${isAt?.6:.2});padding:.6rem;border-radius:2px;text-align:center">
+          <div style="font-size:1.3rem">${m.i}</div>
+          <div style="font-size:.73rem;font-weight:600;color:var(--cr);margin:.15rem 0">${m.l}</div>
+          <div style="font-size:.63rem;color:var(--sl)">Valor: ${fmt(m.v)}</div>
+          <div style="font-size:.63rem;color:#ffa726">Aluguel: ${fmt(aluguel)}/mês</div>
+          <div style="font-size:.63rem;color:var(--sl)">${m.bairro} · ${ZONAS[m.zona]?.l||m.zona}</div>
+          <div style="font-size:.63rem;color:var(--d)">Rep alugado: ${m.rep_al>=0?'+':''}${m.rep_al} · Próprio: +${m.rep_cp}</div>
+          ${m.perigo===2?`<div style="font-size:.61rem;color:#ff8096">⚠️ Bairro perigoso · 1% assalto/mês · -rep</div>`:(m.perigo===1?`<div style="font-size:.61rem;color:#ffa726">⚡ Risco médio</div>`:'')}
+          ${isAt&&isComp?`<div style="font-size:.65rem;color:#69e08a;margin-top:.2rem">✓ Sua casa</div>`:
+            isAt&&!isComp?`<div style="font-size:.65rem;color:var(--d);margin-top:.2rem">✓ Alugando · ${fmt(aluguel)}/mês</div>`:
+            `<div style="display:flex;flex-direction:column;gap:.25rem;margin-top:.3rem">
+              ${podeAlug?`<button onclick="escolherMoradia('${m.id}','aluguel')" style="font-size:.62rem;padding:.18rem;background:rgba(255,167,38,.15);border:1px solid rgba(255,167,38,.4);color:#ffa726;border-radius:2px;cursor:pointer">Alugar ${fmt(aluguel)}/mês</button>`:''}
+              ${podeCom?`<button onclick="escolherMoradia('${m.id}','compra')" style="font-size:.62rem;padding:.18rem;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:#69e08a;border-radius:2px;cursor:pointer">Comprar ${fmt(m.v)}</button>`:`<span style="font-size:.6rem;color:var(--sl)">Compra: sem saldo</span>`}
+            </div>`}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // ── TRANSPORTE ──
+  const desl=calcDeslocamento();
+  const escAtualZona=escritorioAtual().zona||'—';
+  const morAtualZona=mor?.zona||'—';
+  const deslLabel=desl===0?'A pé (mesma zona) — R$0/mês':desl<=88+1?`Zona adjacente — R$4/dia × 22 = ${fmt(desl)}/mês`:`Zona distante — R$8/dia × 22 = ${fmt(desl)}/mês`;
+  cp.innerHTML+=`<div class="cd"><div class="ct">🚗 Transporte</div>
+    <div style="background:rgba(255,167,38,.08);border:1px solid rgba(255,167,38,.25);border-radius:2px;padding:.6rem;margin-bottom:.6rem;font-size:.73rem;color:#ffa726">
+      📍 Deslocamento ao escritório (${escritorioAtual().bairro||'—'}): <b>${deslLabel}</b>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.42rem">
+      <!-- ÔNIBUS -->
+      ${(()=>{const isAt=carId==='onibus';return`<div style="background:rgba(255,255,255,${isAt?.1:.03});border:1px solid rgba(201,168,76,${isAt?.6:.2});padding:.6rem;border-radius:2px;text-align:center">
+        <div style="font-size:1.3rem">🚌</div>
+        <div style="font-size:.73rem;font-weight:600;color:var(--cr);margin:.15rem 0">Ônibus / Metrô</div>
+        <div style="font-size:.63rem;color:var(--sl)">R$8/dia × 22 dias</div>
+        <div style="font-size:.63rem;color:#ffa726">Custo: ${fmt(176)}/mês</div>
+        <div style="font-size:.63rem;color:#ff8096">Rep: -1</div>
+        ${isAt?`<div style="font-size:.65rem;color:var(--d);margin-top:.2rem">✓ Atual</div>`:
+        `<button onclick="escolherCarro('onibus','vista')" style="font-size:.62rem;padding:.18rem;margin-top:.3rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer;width:100%">Usar</button>`}
+      </div>`})()}
+      ${CARROS.map(cr=>{
+        const isAt=cr.id===carId;const fin=G.financiamentos&&G.financiamentos[cr.id];
+        const podeVista=G.dinheiro>=cr.v;
+        const parc36=Math.ceil(cr.v/36*1.35);const parc48=Math.ceil(cr.v/48*1.35);
+        return`<div style="background:rgba(255,255,255,${isAt?.1:.03});border:1px solid rgba(201,168,76,${isAt?.6:.2});padding:.6rem;border-radius:2px;text-align:center">
+          <div style="font-size:1.3rem">${cr.i}</div>
+          <div style="font-size:.72rem;font-weight:600;color:var(--cr);margin:.12rem 0">${cr.l}</div>
+          <div style="font-size:.6rem;color:var(--sl);margin-bottom:.1rem">${cr.desc}</div>
+          <div style="font-size:.62rem;color:var(--sl)">Valor: ${fmt(cr.v)}</div>
+          <div style="font-size:.62rem;color:#ffa726">Manutenção: ${fmt(cr.cm)}/mês</div>
+          <div style="font-size:.62rem;color:var(--d)">Rep: +${cr.rep}</div>
+          ${isAt?`<div style="font-size:.64rem;color:var(--d);margin-top:.18rem">✓ Seu veículo${fin&&fin.parcelas_restantes>0?`<br><span style="color:#ffa726">${fin.parcelas_restantes}× restantes</span>`:' (quitado)'}</div>`:
+          `<div style="display:flex;flex-direction:column;gap:.2rem;margin-top:.25rem">
+            ${podeVista?`<button onclick="escolherCarro('${cr.id}','vista')" style="font-size:.6rem;padding:.14rem;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:#69e08a;border-radius:2px;cursor:pointer">À vista ${fmt(cr.v)}</button>`:`<span style="font-size:.58rem;color:var(--sl)">Sem saldo p/ à vista</span>`}
+            <button onclick="escolherCarro('${cr.id}','fin36')" style="font-size:.6rem;padding:.14rem;background:rgba(255,167,38,.1);border:1px solid rgba(255,167,38,.3);color:#ffa726;border-radius:2px;cursor:pointer">36× ${fmt(parc36)}/mês</button>
+            <button onclick="escolherCarro('${cr.id}','fin48')" style="font-size:.6rem;padding:.14rem;background:rgba(255,167,38,.08);border:1px solid rgba(255,167,38,.25);color:#ffa726;border-radius:2px;cursor:pointer">48× ${fmt(parc48)}/mês</button>
+          </div>`}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // ── ESCRITÓRIO ──
+  cp.innerHTML+=`<div class="cd"><div class="ct">💼 Escritório próprio / Coworking</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.42rem">
+      ${PAT.escritorio.map(it=>{
+        const isAt=G.pat.escritorio===it.id;
+        return`<div style="background:rgba(255,255,255,${isAt?.1:.03});border:1px solid rgba(201,168,76,${isAt?.6:.2});padding:.6rem;border-radius:2px;text-align:center">
+          <div style="font-size:1.3rem">${it.i}</div>
+          <div style="font-size:.73rem;font-weight:600;color:var(--cr);margin:.15rem 0">${it.l}</div>
+          <div style="font-size:.63rem;color:#ffa726">${fmt(it.cm)}/mês</div>
+          <div style="font-size:.63rem;color:var(--d)">Rep: +${it.rep}</div>
+          ${isAt?`<div style="font-size:.65rem;color:var(--d);margin-top:.2rem">✓ Atual</div>`:
+            `<button onclick="comprPat2('${it.id}')" style="margin-top:.3rem;font-size:.62rem;padding:.18rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--d);border-radius:2px;cursor:pointer;width:100%">Mudar</button>`}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // Bens adquiridos
+  if(G.compras&&G.compras.length){
+    cp.innerHTML+=`<div class="cd"><div class="ct">🛒 Bens adquiridos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem">
+        ${G.compras.map(cc=>`<div style="text-align:center;padding:.4rem;background:rgba(255,255,255,.04);border-radius:2px">
+          <div style="font-size:1.2rem">${cc.i}</div>
+          <div style="font-size:.65rem;color:var(--cr)">${cc.n}</div>
+          ${cc.rep?`<div style="font-size:.6rem;color:var(--d)">+${cc.rep} rep</div>`:''}
         </div>`).join('')}
       </div>
     </div>`;
-  });
-  if(G.compras.length)cp.innerHTML+=`<div class="cd"><div class="ct">🛒 Bens</div><div class="ptg">${G.compras.map(c=>`<div class="pti"><div class="pii">${c.i}</div><div class="pil">${c.n}</div><div class="piv">${fmt(c.v)}</div></div>`).join('')}</div></div>`;
+  }
 }
-function comprPat(cat,id){
-  const it=PAT[cat].find(i=>i.id===id);if(!it)return;
-  if(it.v>0&&G.dinheiro<it.v){toast(`Saldo insuficiente. Necessário: ${fmt(it.v)}`,'ko');return;}
-  if(it.v>0)G.dinheiro-=it.v;G.pat[cat]=id;gainXP(12);
-  toast(`${it.i} ${it.l} atualizado!`,'ok');updTb();updR();rPat(document.getElementById('cp'));
+
+function escolherMoradia(id,tipo){
+  const m=MORADIAS.find(x=>x.id===id);if(!m)return;
+  if(tipo==='compra'){
+    if(G.dinheiro<m.v){toast(`Saldo insuficiente. Necessário: ${fmt(m.v)}`,'ko');return;}
+    G.dinheiro-=m.v;
+    if(!G.moradias_compradas)G.moradias_compradas={};
+    G.moradias_compradas[id]=true;
+    G.pat.moradia=id;
+    G.rep=Math.min(100,G.rep+m.rep_cp);
+    gainXP(20);
+    toast(`🏠 ${m.l} comprada! +${m.rep_cp} rep`,'ok');
+    noticia(`🏠 Imóvel adquirido: <b>${m.l}</b> · ${fmt(m.v)} · +${m.rep_cp} rep`,'positivo');
+  } else {
+    G.pat.moradia=id;
+    G.rep=Math.min(100,G.rep+Math.max(0,m.rep_al-(MORADIAS.find(x=>x.id===(G.pat.moradia||'kit'))?.rep_al||0)));
+    gainXP(5);
+    toast(`🏠 Mudou para ${m.l} · Aluguel: ${fmt(Math.floor(m.v*0.0085))}/mês`,'ok');
+  }
+  updTb();updR();rPat(document.getElementById('cp'));autoSave();
+}
+
+function escolherCarro(id,modalidade){
+  if(id==='onibus'){G.pat.transporte='onibus';G.rep=Math.max(0,G.rep-1);toast('🚌 Transporte público selecionado.','');updTb();updR();rPat(document.getElementById('cp'));autoSave();return;}
+  const cr=CARROS.find(x=>x.id===id);if(!cr)return;
+  if(!G.financiamentos)G.financiamentos={};
+  if(modalidade==='vista'){
+    if(cr.v>0&&G.dinheiro<cr.v){toast(`Saldo insuficiente. Necessário: ${fmt(cr.v)}`,'ko');return;}
+    if(cr.v>0)G.dinheiro-=cr.v;
+    G.pat.transporte=id;
+    G.rep=Math.min(100,G.rep+cr.rep);
+    gainXP(15);
+    toast(`${cr.i} ${cr.l} adquirido à vista! +${cr.rep} rep`,'ok');
+  } else {
+    const parcelas=modalidade==='fin36'?36:48;
+    const parcela=cr.v>0?Math.ceil(cr.v/parcelas*1.35):0;
+    G.financiamentos[id]={nome:cr.l,parcela_mensal:parcela,parcelas_restantes:parcelas,valor_total:parcela*parcelas};
+    G.pat.transporte=id;
+    G.rep=Math.min(100,G.rep+Math.floor(cr.rep*0.6));
+    toast(`${cr.i} ${cr.l} financiado! ${parcelas}x ${fmt(parcela)}/mês`,'ok');
+  }
+  updTb();updR();rPat(document.getElementById('cp'));autoSave();
+}
+
+function comprPat2(id){
+  const it=PAT.escritorio.find(i=>i.id===id);if(!it)return;
+  G.pat.escritorio=id;gainXP(8);
+  toast(`${it.i} ${it.l} — escritório atualizado!`,'ok');
+  updTb();updR();rPat(document.getElementById('cp'));autoSave();
 }
 
 // ── LOJA ──
@@ -1794,8 +2480,11 @@ function rLoja(cp){
 }
 function comprIt(id){
   const it=SHOP.find(i=>i.id===id);if(!it||G.dinheiro<it.p)return;
-  G.dinheiro-=it.p;it.e();G.compras.push({id:it.id,i:it.i,n:it.n,v:Math.floor(it.p*.7)});
-  toast(`${it.i} ${it.n} adquirido!`,'ok');gainXP(14);updTb();updR();rLoja(document.getElementById('cp'));
+  G.dinheiro-=it.p;it.e();
+  G.compras.push({id:it.id,i:it.i,n:it.n,v:Math.floor(it.p*.6),rep:it.rep||0});
+  if(it.rep>0)G.rep=Math.min(100,G.rep+it.rep);
+  toast(`${it.i} ${it.n} adquirido!${it.rep>0?' +'+it.rep+' rep':''}`,'ok');
+  gainXP(8);updTb();updR();rLoja(document.getElementById('cp'));autoSave();
 }
 
 // ── NOTÍCIAS ──
@@ -1806,23 +2495,73 @@ function rNews(cp){
   [...G.noticias].reverse().forEach(n=>{cp.innerHTML+=`<div class="ni2 ${n.tipo||''}"><div class="nd">${n.data}</div><div class="nt">${n.texto}</div></div>`;});
 }
 
-// ══ AVANÇAR SEMANA ══
+// ══ AVANÇAR MÊS ══
 async function advW(){
-  const btn=document.getElementById('ba');btn.disabled=true;btn.textContent='⏳...';
-  G.sg++;G.sem++;
-  if(G.sem>4){
-    G.sem=1;G.mes++;if(G.mes>11){G.mes=0;G.ano++;G.anos++;}
-    calcR();const d=calcD();G.dinheiro+=G.renda-d;
-    noticia(`💰 Fechamento ${MN[G.mes>0?G.mes-1:11]}/${G.ano}: +${fmt(G.renda)} renda · -${fmt(d)} despesas`,G.renda-d>=0?'positivo':'urgente');
-    G.estagiarios.forEach(e=>{e.s++;if(Math.random()<.3)e.d=Math.min(100,e.d+2);});chkConc();
+  const btn=document.getElementById('ba');
+  if(!btn||btn.disabled)return;
+  btn.disabled=true;btn.textContent='⏳...';
+  // Avança 1 mês por clique
+  G.sg=G.sg||0; G.sg++;
+  G.mes_global=(G.mes_global||0)+1;
+  G.mes=(G.mes||0)+1;
+  if(G.mes>11){G.mes=0;G.ano=(G.ano||2024)+1;G.anos=(G.anos||0)+1;}
+  // processar study_queue (estudos agendados)
+  processarStudyQueue();
+  // Evento de bairro perigoso (assalto)
+  const morAgora=MORADIAS.find(m=>m.id===(G.pat.moradia||'kit'));
+  if(morAgora&&morAgora.perigo===2&&Math.random()<0.01){
+    const perda=Math.floor(G.dinheiro*0.1);
+    G.dinheiro-=perda;
+    noticia(`🚨 <b>Assalto em ${morAgora.bairro}!</b> Você perdeu ${fmt(perda)} (10% do seu saldo). Considere mudar de bairro.`,'urgente');
+    toast(`🚨 Assalto! -${fmt(perda)}`,'ko');
   }
-  G.procs.forEach(p=>{if(p.audsem===G.sg&&!G.audpend.includes(p.id)){noticia(`🔴 Audiência HOJE: ${p.tipo} — ${p.autor} vs ${p.reu}`,'urgente');G.audpend.push(p.id);}});
-  G.audpend=G.audpend.filter(id=>G.procs.some(p=>p.id===id));
-  if(Math.random()<.52)evSem();
-  if(Math.random()<.18&&G.procs.length<9){G.procs.push(mkProc());noticia(`📁 Novo caso: ${G.procs[G.procs.length-1].tipo}`,'positivo');}
-  updTb();updR();btn.disabled=false;btn.textContent='▶ Avançar mês';
+  // Processar financiamentos de carro
+  processarFinanciamentos();
+  // Calcular renda e despesas
+  calcR();
+  const despesas=calcD();
+  const custo_vida=calcCustoVida();
+  const saldo_mes=G.renda-despesas-custo_vida;
+  G.dinheiro=(G.dinheiro||0)+saldo_mes;
+  // rep natural decai levemente
+  if(Math.random()<0.15&&G.rep>10)G.rep=Math.max(10,G.rep-1);
+  // Rep de bairro perigoso pesa permanentemente
+  const morMes=MORADIAS.find(m=>m.id===(G.pat.moradia||'kit'));
+  if(morMes&&morMes.perigo===2&&G.rep>5)G.rep=Math.max(5,G.rep-1); // -1 rep/mês em bairro perigoso
+  if(morMes&&morMes.rep_al<0&&G.rep>0)G.rep=Math.max(0,G.rep+morMes.rep_al*0.1|0); // rep_al negativo adicional
+  // Notícia de fechamento
+  const mesNome=MN[G.mes>0?G.mes-1:11];
+  noticia(`💰 <b>${mesNome}/${G.ano}</b>: +${fmt(G.renda)} renda · -${fmt(despesas)} despesas · -${fmt(custo_vida)} custo de vida = <b style="color:${saldo_mes>=0?'#69e08a':'#ff8096'}">${saldo_mes>=0?'+':''}${fmt(saldo_mes)}</b>`,saldo_mes>=0?'positivo':'urgente');
+  // Estagiários evoluem mensalmente
+  G.estagiarios.forEach(e=>{e.s=(e.s||0)+1;if(Math.random()<.25)e.d=Math.min(100,e.d+1);});
+  chkConc();verificarDemissao();
+  // Verificar chamadas para melhores escritórios
+  verificarOfertasEscritorio();
+  // Eventos
+  if(Math.random()<.7)evSem();
+  if(Math.random()<.4)evSem();
+  // Novo caso esporádico
+  if(Math.random()<.3&&G.procs.length<10){G.procs.push(mkProc());noticia(`📁 Novo caso chegou: <b>${G.procs[G.procs.length-1].tipo}</b>`,'positivo');}
+  updTb();updR();
+  btn.disabled=false;btn.textContent='▶ Avançar mês';
   const a=document.querySelector('.ni.on');if(a)sw(a.dataset.p);
   autoSave();
+}
+
+function verificarOfertasEscritorio(){
+  // A cada 3 meses, verificar se o jogador tem rep suficiente para escritório melhor
+  if(G.mes_global%3!==0)return;
+  const atual=escritorioAtual();
+  const melhor=ESCRITORIOS.filter(e=>e.tier>atual.tier&&G.rep>=e.rep_min).sort((a,b)=>b.tier-a.tier)[0];
+  if(melhor){
+    const v=melhor.vagas[0];
+    const skOk=Object.entries(v.sk_req||{}).every(([k,m])=>(G.sk[k]||0)>=m);
+    const cargoOk=G.ci>=(CARGOS.findIndex(x=>x.id===v.cargo));
+    if(skOk&&cargoOk&&G.oab){
+      noticia(`📬 <b>${melhor.nome}</b> entrou em contato! Você tem perfil para a vaga de ${TIPO_LABEL[v.tipo]}. Acesse <b>Escritórios</b>.`,'positivo');
+      toast(`📬 Oferta de ${melhor.nome}!`,'ok');
+    }
+  }
 }
 // ══ EVENTO SEMANAL DETERMINÍSTICO ══
 const EVENTOS_ESP={
@@ -1937,6 +2676,21 @@ window._loadSave=function(saved){
   if(!G.noticias)G.noticias=[];
   if(!G.audpend)G.audpend=[];
   if(!G.prfin)G.prfin=[];
+  if(!G.escritorio_id)G.escritorio_id='solo';
+  if(!G.study_queue)G.study_queue=[];
+  if(!G.financiamentos)G.financiamentos={};
+  if(!G.moradias_compradas)G.moradias_compradas={};
+  if(!G.mes_global)G.mes_global=G.sg||1;
+  if(!G.pat.moradia)G.pat.moradia='kit';
+  if(!G.pat.transporte)G.pat.transporte='mtr';
+  if(!G.vaga_tipo)G.vaga_tipo='contencioso';
+  if(G.derrotas_consecutivas===undefined)G.derrotas_consecutivas=0;
+  if(!G.sk.argumentacao)G.sk.argumentacao=G.sk.tecnica||15;
+  if(!G.sk.escrita)G.sk.escrita=G.sk.peticao||15;
+  if(!G.sk.persuasao)G.sk.persuasao=12;
+  if(G.sk.peticao)delete G.sk.peticao;
+  if(G.sk.tecnica)delete G.sk.tecnica;
+  if(G.sk.pressao)delete G.sk.pressao;
   if(!G.procs)G.procs=[];
   if(!G.mes_global)G.mes_global=G.sg||1;
   G.procs.forEach(p=>{
